@@ -1,12 +1,12 @@
 """
-EclipseFlow OCR 微服务
-FastAPI + EasyOCR + AI 智能解析。
-图片拖进去，文字识别后 AI 自动整理成结构化任务。
+EclipseFlow OCR Service
+FastAPI + EasyOCR + AI parsing
 """
 
 import io
 import os
 import json
+import time
 import requests
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,14 +23,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# AI 配置 —— 走 DeepSeek 的 Anthropic 兼容接口
 AI_API_KEY = os.environ.get("ANTHROPIC_AUTH_TOKEN", "sk-29ef71dd622d4385a41ef51e91ddd66c")
 AI_BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "https://api.deepseek.com/anthropic")
 AI_MODEL = os.environ.get("ANTHROPIC_MODEL", "deepseek-v4-pro")
 
-# EasyOCR 懒加载
-_reader = None
+# Kimi vision API (for images directly)
+KIMI_KEY = os.environ.get("KIMI_API_KEY", "sk-TrJW6JOKFgnoZYEWKhWGeuNBhXhQT9VhCcG75r9638IodMxF")
+KIMI_BASE = "https://api.moonshot.cn/v1"
+KIMI_MODEL = "moonshot-v1-32k-vision-preview"
 
+_reader = None
 
 def get_reader():
     global _reader
@@ -47,7 +49,6 @@ def health():
 
 @app.post("/ocr")
 async def ocr_image(file: UploadFile = File(...)):
-    """接收图片，返回 OCR 识别出的所有文字行"""
     contents = await file.read()
     image = Image.open(io.BytesIO(contents))
     img_array = np.array(image)
@@ -55,47 +56,79 @@ async def ocr_image(file: UploadFile = File(...)):
     reader = get_reader()
     results = reader.readtext(img_array)
 
-    lines = [item[1].strip() for item in results if item[1].strip()]
+    blocks = []
+    for item in results:
+        bbox = item[0]
+        text = item[1].strip()
+        if text:
+            cx = (bbox[0][0] + bbox[2][0]) / 2
+            cy = (bbox[0][1] + bbox[2][1]) / 2
+            blocks.append({"text": text, "x": cx, "y": cy})
+
+    # Group into rows by y-coordinate
+    blocks.sort(key=lambda b: b["y"])
+    rows = []
+    cur = []
+    last_y = -999
+    for b in blocks:
+        if cur and abs(b["y"] - last_y) > 18:
+            rows.append(cur)
+            cur = []
+        cur.append(b)
+        last_y = b["y"]
+    if cur:
+        rows.append(cur)
+
+    table_lines = []
+    for row in rows:
+        row.sort(key=lambda b: b["x"])
+        table_lines.append(" | ".join([b["text"] for b in row]))
+
+    table_text = "\n".join(table_lines)
+    plain_text = "\n".join([b["text"] for b in blocks])
+
+    with open("last_ocr.txt", "w", encoding="utf-8") as f:
+        f.write(f"=== table ===\n{table_text}\n\n=== plain ===\n{plain_text}")
 
     return {
-        "lines": lines,
-        "text": "\n".join(lines),
-        "count": len(lines),
+        "lines": [b["text"] for b in blocks],
+        "text": table_text,
+        "plain": plain_text,
+        "count": len(blocks),
     }
 
 
 class ParseRequest(BaseModel):
     text: str
-    today: str = ""  # YYYY-MM-DD，帮 AI 理解"今天""明天"
+    plain: str = ""
+    today: str = ""
 
 
 @app.post("/parse")
 async def parse_tasks(req: ParseRequest):
-    """
-    把 OCR 原始文字发给 AI，让 AI 整理成结构化任务列表。
-    返回的 JSON 可以直接交给前端确认入库。
-    """
-    if not req.text.strip():
+    combined = req.text
+    if req.plain and req.plain != req.text:
+        combined = (
+            "=== TABLE MODE (columns separated by |) ===\n" +
+            req.text +
+            "\n\n=== RAW OCR (original word order) ===\n" +
+            req.plain
+        )
+
+    if not combined.strip():
         return {"tasks": []}
 
-    prompt = f"""你是一个任务解析助手。用户通过 OCR 识别了一段文字，请从中提取所有任务。
+    prompt = (
+        "Extract all university courses from this weekly schedule OCR. "
+        f"Current date is {req.today}. The schedule has columns Mon=周一 through Sun=周日 with dates like 04/13=Apr13. "
+        "Time slots: 8:30, 10:25, 14:30, 16:25, 18:30 (each ~1.5h). "
+        "Course names may be split across lines - concatenate adjacent lines in same position. "
+        "Room numbers are @ followed by digits (e.g. @06409). Remove @. "
+        "For each course output JSON: taskName, taskDate (YYYY-MM-DD), startTime (HH:MM), "
+        "endTime (HH:MM), notes (room), color (#c1ff00aa). Return ONLY JSON array.\n\n" +
+        combined
+    )
 
-当前日期是 {req.today}，请根据这个日期推算"今天""明天""下周""周几"等相对时间的实际日期。
-
-请严格返回 JSON 数组，每个任务包含以下字段：
-- taskName: 任务名称（字符串）
-- taskDate: 任务日期，格式 YYYY-MM-DD（字符串）
-- startTime: 开始时间，如果原文没写就填 "09:00"（字符串 HH:MM）
-- endTime: 截止/结束时间，如果原文没写就留空（字符串或 null）
-- notes: 备注/补充信息（字符串或 null）
-- color: 根据任务类型推测颜色，学习类 #c1ff00aa，工作类 #0077ffaa，生活娱乐类 #f498adaa，重要紧急 #7a5fffaa，其他 #c1ff00aa
-
-只返回 JSON 数组，不要其他文字。
-
-OCR 原文：
-{req.text}"""
-
-    # 网络不稳时重试最多 3 次
     last_error = None
     for attempt in range(3):
         try:
@@ -108,36 +141,31 @@ OCR 原文：
                 },
                 json={
                     "model": AI_MODEL,
-                    "max_tokens": 2048,
-                    "messages": [
-                        {"role": "user", "content": prompt}
-                    ],
+                    "max_tokens": 8192,
+                    "messages": [{"role": "user", "content": prompt}],
                 },
-                timeout=90,
+                timeout=120,
             )
             if resp.status_code == 200:
                 break
-            last_error = f"AI API error: {resp.status_code}"
+            last_error = f"AI API status {resp.status_code}"
         except Exception as e:
-            last_error = f"AI API error: {str(e)[:100]}"
+            last_error = str(e)[:120]
             if attempt < 2:
-                import time
                 time.sleep(2)
     else:
         return {"tasks": [], "error": last_error or "AI API failed"}
 
     data = resp.json()
-    content = data.get("content", [])
-
     ai_text = ""
-    for block in content:
+    for block in data.get("content", []):
         if block.get("type") == "text":
             ai_text += block.get("text", "")
 
     if not ai_text.strip():
+        print("[PARSE] AI empty response")
         return {"tasks": [], "error": "AI returned empty response"}
 
-    # 去掉 markdown 代码块标记
     ai_text = ai_text.strip()
     if ai_text.startswith("```json"):
         ai_text = ai_text[7:]
@@ -147,7 +175,6 @@ OCR 原文：
         ai_text = ai_text[:-3]
     ai_text = ai_text.strip()
 
-    # 尝试找 JSON 数组
     try:
         start = ai_text.index("[")
         end = ai_text.rindex("]") + 1
@@ -158,11 +185,105 @@ OCR 原文：
     try:
         tasks = json.loads(ai_text)
         if isinstance(tasks, list):
+            print(f"[PARSE] Success: {len(tasks)} tasks")
             return {"tasks": tasks}
     except json.JSONDecodeError:
         pass
 
-    return {"tasks": [], "error": "AI parse failed", "raw": ai_text[:500]}
+    print(f"[PARSE] JSON parse failed, raw: {ai_text[:300]}")
+    return {"tasks": [], "error": "AI response could not be parsed", "raw": ai_text[:500]}
+
+
+@app.post("/ocr-vision")
+async def ocr_vision(file: UploadFile = File(...), today: str = ""):
+    """
+    Direct vision: send image to Kimi vision model, get structured tasks back.
+    For complex images like full weekly schedules that OCR can't handle.
+    """
+    contents = await file.read()
+
+    # Convert image to base64
+    import base64
+    img_b64 = base64.b64encode(contents).decode()
+
+    if not today:
+        from datetime import date
+        today = date.today().isoformat()
+
+    prompt = (
+        "Extract ALL courses from this weekly class schedule image. "
+        f"Today is {today}. The schedule shows one week of courses with columns for each weekday.\n\n"
+        "DATE MAPPING: Look at the column headers carefully. They show weekdays (Monday=周一, Tuesday=周二, etc.) "
+        "with corresponding dates. Read the EXACT date numbers (MM/DD format) from each column header. "
+        "For example if the header shows '周一 04/13', then all courses under that column have taskDate '2026-04-13'. "
+        "Use the actual date from the header, not the weekday name.\n\n"
+        "For each course, return a JSON object with:\n"
+        '- taskName: full course name\n'
+        '- taskDate: YYYY-MM-DD (read from column header, use 2026 as year)\n'
+        '- startTime: HH:MM from the time column\n'
+        '- endTime: HH:MM (usually 1.5h later, e.g. 08:30->10:00, 10:25->11:55, 14:30->16:00, 16:25->17:55, 18:30->20:00)\n'
+        '- notes: classroom number (e.g. "06409") or "线上" if online\n'
+        '- color: "#c1ff00aa"\n\n'
+        "Return ONLY a valid JSON array. Every course must be included."
+    )
+
+    try:
+        resp = requests.post(
+            f"{KIMI_BASE}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {KIMI_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": KIMI_MODEL,
+                "messages": [{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{img_b64}",
+                                "detail": "high",
+                            },
+                        },
+                    ],
+                }],
+                "max_tokens": 4096,
+                "temperature": 0.1,
+            },
+            timeout=120,
+        )
+
+        if resp.status_code != 200:
+            return {"tasks": [], "error": f"Kimi API error: {resp.status_code}", "raw": resp.text[:200]}
+
+        data = resp.json()
+        content = data["choices"][0]["message"]["content"]
+
+        # Parse JSON from response
+        ai_text = content.strip()
+        if ai_text.startswith("```json"):
+            ai_text = ai_text[7:]
+        elif ai_text.startswith("```"):
+            ai_text = ai_text[3:]
+        if ai_text.endswith("```"):
+            ai_text = ai_text[:-3]
+        ai_text = ai_text.strip()
+
+        try:
+            start = ai_text.index("[")
+            end = ai_text.rindex("]") + 1
+            ai_text = ai_text[start:end]
+        except ValueError:
+            pass
+
+        tasks = json.loads(ai_text)
+        print(f"[VISION] {len(tasks)} tasks extracted")
+        return {"tasks": tasks, "text": content}
+
+    except Exception as e:
+        return {"tasks": [], "error": str(e)[:200]}
 
 
 if __name__ == "__main__":

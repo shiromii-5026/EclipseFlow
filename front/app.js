@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.style.top = `${startDecimal * CONFIG.HOUR_HEIGHT + CONFIG.HEADER_HEIGHT}px`;
 
                     if (isDDL) {
-                        const ddlColor = t.color || '#c1ff00';
+                        const ddlColor = t.color || '#7ab648';
                         item.style.setProperty('--ddl-color', ddlColor.substring(0, 7));
                         item.style.height = '4px';
                         item.style.minHeight = '4px';
@@ -295,10 +295,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         const taskDuration = t.duration ?? 1;
                         item.style.height = `${taskDuration * CONFIG.HOUR_HEIGHT}px`;
 
+                        const noteHtml = t.notes ? `<div class="event-note-text">${t.notes}</div>` : '';
                         item.innerHTML = `
                             <div class="resize-handle top">▴</div>
                             <div class="event-time-tag">${t.time.substring(0, 5)}</div>
                             <div class="event-name-text">${t.name}</div>
+                            ${noteHtml}
                             <button class="del-btn-mini" data-id="${t.id}">×</button>
                             <div class="resize-handle bottom">▾</div>
                         `;
@@ -508,7 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         async function uploadAndRecognize(file) {
-            statusEl.textContent = 'OCR 识别中...';
+            statusEl.textContent = 'AI 识别中...';
             statusEl.style.display = 'block';
             statusEl.style.color = 'var(--black)';
             dropZone.style.pointerEvents = 'none';
@@ -518,55 +520,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 const formData = new FormData();
                 formData.append('file', file);
 
-                const resp = await fetch(`${CONFIG.OCR_BASE}/ocr`, {
+                const today = getCSTDateStr(new Date());
+                const resp = await fetch(`${CONFIG.OCR_BASE}/ocr-vision?today=${today}`, {
                     method: 'POST',
                     body: formData,
                 });
 
-                if (!resp.ok) throw new Error('OCR service error');
+                if (!resp.ok) throw new Error('Vision service error');
 
                 const result = await resp.json();
 
-                if (!result.text) {
-                    statusEl.textContent = '未识别到文字';
-                    return;
-                }
-
-                // OCR 成功，发给 AI 解析
-                statusEl.textContent = 'AI 整理中...';
-
-                const today = getCSTDateStr(new Date());
-                const parseResp = await fetch(`${CONFIG.OCR_BASE}/parse`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: result.text, today }),
-                });
-
-                if (!parseResp.ok) throw new Error('Parse service error');
-
-                const parsed = await parseResp.json();
-
-                if (parsed.tasks && parsed.tasks.length > 0) {
-                    statusEl.textContent = `识别到 ${parsed.tasks.length} 个任务`;
-                    openBatchConfirmModal(parsed.tasks);
-                } else if (parsed.error) {
-                    statusEl.textContent = parsed.error;
+                if (result.tasks && result.tasks.length > 0) {
+                    statusEl.textContent = `识别到 ${result.tasks.length} 个任务`;
+                    openBatchConfirmModal(result.tasks);
+                } else if (result.error) {
+                    statusEl.textContent = result.error;
                 } else {
-                    statusEl.textContent = '未识别到可用的任务';
+                    statusEl.textContent = '未识别到任务';
                 }
             } catch (err) {
                 statusEl.textContent = 'OCR 服务连接失败，请确认 ocr-service 已启动';
             } finally {
                 dropZone.style.pointerEvents = 'auto';
                 dropZone.style.opacity = '1';
-                setTimeout(() => {
-                    if (statusEl.textContent === 'OCR 服务未启动' || statusEl.textContent === 'AI 解析失败，请重试') {
-                        // keep error message
-                    } else {
-                        statusEl.textContent = '';
-                        statusEl.style.display = '';
-                    }
-                }, 4000);
+                setTimeout(() => { statusEl.textContent = ''; statusEl.style.display = ''; }, 5000);
             }
         }
     }
