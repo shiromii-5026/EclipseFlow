@@ -1,62 +1,75 @@
 # EclipseFlow
 
-多平台日程助手。支持手动录入、OCR 拍照导入、AI 智能解析、浏览器提醒与实时倒计时。
+多平台日程助手。手动录入、拍照 OCR + AI 导入、浏览器提醒、实时倒计时、好友共享日历。
 
 ## 技术栈
 
 | 层 | 技术 |
 |---|------|
 | 前端 | 原生 HTML / CSS / JS + Interact.js 拖拽 |
-| 后端 | Java Spring Boot + MyBatis-Plus |
+| 后端 | Java Spring Boot + MyBatis-Plus + Spring Security + JWT |
 | 数据库 | MySQL |
 | OCR | Python FastAPI + EasyOCR |
 | AI 解析 | Kimi 视觉模型 / DeepSeek |
-| 通知 | Browser Notification API |
+| 推送 | Web Push (浏览器) + PWA |
 
 ## 功能
 
 - 周视图日程网格，拖拽调整时间，拉伸调整时长
-- DDL 截止日线任务（只填开始时间）与 BLOCK 时间块任务（填开始+截止）
-- 迷你日历快速跳转，有任务的日期标短横线，点击自动滚到当日任务
-- 侧边栏实时倒计时：进行中的任务显示剩余时间，一小时内开始的任务显示倒计时
-- 浏览器通知：任务开始前 5 分钟弹窗提醒
-- 图片拖拽上传 + OCR 识别 + AI 解析为结构化任务，支持逐个确认 / 一键导入
-- 暗色模式与日间模式
-- 任务颜色自定义
+- DDL 截止日线任务 / BLOCK 时间块任务
+- 迷你日历快速跳转，有任务标短横线，点击自动滚到当日
+- 侧边栏实时倒计时：进行中显示剩余时间，即将开始显示倒计时
+- 图片拖拽上传 + OCR + AI 解析，逐个确认 / 一键导入
+- 课表截图直发 Kimi 视觉模型识别
+- 浏览器通知 & PWA 推送（支持离线使用）
+- 多用户登录注册（JWT），任务数据隔离
+- 好友系统：搜索添加、好友列表、私聊
+- 好友日历共享（可开关公开）
+- 暗色模式 / 日间模式
 
 ## 项目结构
 
 ```
 EclipseFlow/
-├── front/                    # 前端页面
-│   ├── index.html
+├── front/                    # 前端
+│   ├── login.html            # 登录页
+│   ├── index.html            # 主应用
 │   ├── style.css
-│   └── app.js
+│   ├── app.js
+│   ├── manifest.json         # PWA
+│   ├── service-worker.js     # 离线缓存 + 推送
+│   └── icon-*.png
 ├── eclipse-flow-backend/     # Java 后端
 │   └── src/main/java/net/togogo/eclipseflowbackend/
-│       ├── controller/
-│       ├── entity/
-│       ├── dto/
+│       ├── auth/             # 登录注册、JWT、好友、聊天
+│       ├── controller/       # TaskController
+│       ├── entity/           # Task
+│       ├── dto/              # TaskTimeUpdateDto
 │       ├── service/
-│       └── mapper/
+│       ├── mapper/
+│       └── push/             # Web Push 推送
 ├── ocr-service/              # OCR + AI 微服务
 │   ├── main.py
 │   ├── requirements.txt
 │   └── run.bat
-└── eclipse-flow-front-vue/   # Vue 前端脚手架（未启用）
+└── eclipse-flow-front-vue/   # Vue 脚手架（未启用）
 ```
 
-## 启动
+## 快速启动
 
 ### 1. 数据库
-
-MySQL，创建库 `eclipse_flow`，编码 utf8mb4。
 
 ```sql
 CREATE DATABASE eclipse_flow DEFAULT CHARSET utf8mb4;
 ```
 
-表结构由 MyBatis-Plus 自动维护，首次启动后端即可。
+首次启动后端自动建表，再执行：
+
+```sql
+INSERT INTO users (id, username, password) VALUES (2, 'shiromii', '$2b$12$xbUsVDZxk9OOWC3cu0/JvepR.DQd7jrDIZu.941FoCNQoQUaKXYaC');
+```
+
+（密码 123456，bcrypt 加密）
 
 ### 2. 后端
 
@@ -65,7 +78,7 @@ cd eclipse-flow-backend
 mvn spring-boot:run
 ```
 
-默认端口 8080，配置文件 `src/main/resources/application.yml`。
+端口 8080。
 
 ### 3. OCR 服务
 
@@ -75,37 +88,42 @@ pip install -r requirements.txt
 python main.py
 ```
 
-默认端口 8000。首次启动会下载 EasyOCR 模型（约 77MB）。  
-Kimi API Key 如需更换，修改 `main.py` 中的 `KIMI_KEY`。
+端口 8000，首次启动下载 EasyOCR 模型约 77MB。
+Kimi API Key 在 `main.py` 顶部的 `KIMI_KEY` 中配置。
 
 ### 4. 前端
 
-直接用浏览器打开 `front/index.html`，或挂到任意静态服务上。
+浏览器打开 `front/login.html`，登录后进入主页面。
+或者挂到任意静态服务，前端默认请求 `localhost:8080` 和 `localhost:8000`。
 
-前端默认请求 `localhost:8080`（后端）和 `localhost:8000`（OCR），可在 `app.js` 顶部 `CONFIG` 中修改。
+## 默认账号
 
-## API
+| 用户名 | 密码 |
+|--------|------|
+| shiromii | 123456 |
+| admin | 123456 |
+
+## API 一览
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/tasks/list` | 获取所有任务 |
+| POST | `/api/auth/login` | 登录，返回 JWT |
+| POST | `/api/auth/register` | 注册 |
+| GET | `/api/tasks/list` | 获取当前用户任务 |
 | POST | `/api/tasks/add` | 新增任务 |
-| DELETE | `/api/tasks/delete/{id}` | 删除任务 |
-| PUT | `/api/tasks/update-time` | 更新任务（拖拽/拉伸/编辑） |
-| POST | `/ocr` | OCR 识别图片文字 |
-| POST | `/parse` | AI 将文字解析为结构化任务 |
-| POST | `/ocr-vision` | Kimi 视觉模型直接识别图片 |
-| GET | `/health` | OCR 服务健康检查 |
-
-## 任务字段
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| taskName | String | 任务名 |
-| taskDate | Date | 日期 YYYY-MM-DD |
-| startTime | Time | 开始时间 HH:MM:SS |
-| duration | Double | 时长（小时），DDL 任务为 0 |
-| deadline | Time | 截止时间 |
-| taskType | String | DDL（截止线）/ BLOCK（时间块） |
-| color | String | 颜色，如 #b5d528aa |
-| notes | String | 备注 |
+| DELETE | `/api/tasks/delete/{id}` | 删除 |
+| PUT | `/api/tasks/update-time` | 更新（拖拽/拉伸/编辑） |
+| POST | `/api/push/subscribe` | 推送订阅 |
+| GET | `/api/social/search?q=` | 搜索用户 |
+| POST | `/api/social/add-friend` | 发送好友申请 |
+| GET | `/api/social/friends` | 好友列表 |
+| GET | `/api/social/requests` | 待处理的申请 |
+| POST | `/api/social/accept` | 接受申请 |
+| POST | `/api/social/send` | 发送私聊 |
+| GET | `/api/social/messages/{id}` | 聊天记录 |
+| GET | `/api/social/friend-calendar/{id}` | 查看好友日历 |
+| POST | `/api/social/toggle-calendar` | 开关日历公开 |
+| POST | `/ocr` | OCR 识别图片 |
+| POST | `/ocr-vision` | Kimi 视觉直接识别 |
+| POST | `/parse` | AI 解析文字为任务 |
+| GET | `/health` | OCR 健康检查 |
