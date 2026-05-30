@@ -1,7 +1,8 @@
 // EclipseFlow Service Worker
-// 处理离线缓存和推送通知
+// 离线缓存 + 推送通知
+// 策略：网络优先，失败时用缓存兜底
 
-const CACHE_NAME = 'eclipseflow-v1';
+const CACHE_NAME = 'eclipseflow-v2';
 const CACHE_URLS = [
     './',
     'index.html',
@@ -14,7 +15,6 @@ const CACHE_URLS = [
     'https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js',
 ];
 
-// 安装：预缓存核心文件
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => cache.addAll(CACHE_URLS))
@@ -22,7 +22,6 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
-// 激活：清理旧缓存
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((keys) =>
@@ -32,12 +31,18 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// 请求拦截：缓存优先，网络回退
+// 网络优先，失败才用缓存
 self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') return;
     if (event.request.url.includes('/api/') || event.request.url.includes('/ocr')) return;
     event.respondWith(
-        caches.match(event.request).then((cached) => cached || fetch(event.request))
+        fetch(event.request)
+            .then((response) => {
+                const clone = response.clone();
+                caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                return response;
+            })
+            .catch(() => caches.match(event.request))
     );
 });
 
