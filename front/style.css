@@ -47,16 +47,16 @@ body {
     --black: #2c2416;
     --white: #faf8f0;
 
-    --accent: #7ab648;
-    --accent-glow-1: rgba(122, 182, 72, 0.12);
-    --accent-glow-2: rgba(122, 182, 72, 0.2);
-    --accent-glow-3: rgba(122, 182, 72, 0.3);
-    --accent-glow-4: rgba(122, 182, 72, 0.4);
-    --accent-glow-5: rgba(122, 182, 72, 0.5);
-    --accent-glow-6: rgba(122, 182, 72, 0.6);
-    --accent-bright: #8cc63f;
-    --accent-bg: rgba(122, 182, 72, 0.06);
-    --accent-bg-hover: rgba(122, 182, 72, 0.04);
+    --accent: #6bc026;
+    --accent-glow-1: rgba(107, 192, 38, 0.12);
+    --accent-glow-2: rgba(107, 192, 38, 0.22);
+    --accent-glow-3: rgba(107, 192, 38, 0.32);
+    --accent-glow-4: rgba(107, 192, 38, 0.45);
+    --accent-glow-5: rgba(107, 192, 38, 0.55);
+    --accent-glow-6: rgba(107, 192, 38, 0.65);
+    --accent-bright: #7ed42a;
+    --accent-bg: rgba(107, 192, 38, 0.06);
+    --accent-bg-hover: rgba(107, 192, 38, 0.04);
 
     --today-highlight: rgba(61, 122, 79, 0.1);
 
@@ -728,6 +728,23 @@ body.dark-mode .header-barcode {
     border-radius: 20px;
 }
 
+/* 滚动条 */
+#weekly-scroll-container::-webkit-scrollbar {
+    width: 6px;
+}
+#weekly-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 3px;
+}
+#weekly-scroll-container::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 3px;
+    opacity: 0.5;
+}
+#weekly-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-bright);
+}
+
 .weekly-grid {
 
     display: grid;
@@ -1139,11 +1156,15 @@ input[type="date"],
     appearance: none;
     -webkit-appearance: none;
     padding: 0 24px 0 12px !important;
-    background-color: rgba(255,255,255,.9) !important;
+    background-color: rgba(250, 248, 240, 0.95) !important;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23888' d='M2 3.5l3 3 3-3'/%3E%3C/svg%3E") !important;
     background-repeat: no-repeat !important;
     background-position: right 10px center !important;
     cursor: pointer;
+}
+
+body.dark-mode #task-color-select {
+    background-color: rgba(30, 30, 35, 0.95) !important;
 }
 
 #task-name-input {
