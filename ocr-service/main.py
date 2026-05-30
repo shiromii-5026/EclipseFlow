@@ -109,7 +109,7 @@ OCR 原文：
                 {"role": "user", "content": prompt}
             ],
         },
-        timeout=30,
+        timeout=90,
     )
 
     if resp.status_code != 200:
@@ -123,20 +123,35 @@ OCR 原文：
         if block.get("type") == "text":
             ai_text += block.get("text", "")
 
-    # 去掉可能的 markdown 代码块标记，提取 JSON
+    if not ai_text.strip():
+        return {"tasks": [], "error": "AI returned empty response"}
+
+    # 去掉 markdown 代码块标记
+    ai_text = ai_text.strip()
+    if ai_text.startswith("```json"):
+        ai_text = ai_text[7:]
+    elif ai_text.startswith("```"):
+        ai_text = ai_text[3:]
+    if ai_text.endswith("```"):
+        ai_text = ai_text[:-3]
+    ai_text = ai_text.strip()
+
+    # 尝试找 JSON 数组
     try:
-        ai_text = ai_text.strip()
-        if ai_text.startswith("```"):
-            ai_text = ai_text.split("\n", 1)[1]
-            if ai_text.endswith("```"):
-                ai_text = ai_text[:-3]
+        start = ai_text.index("[")
+        end = ai_text.rindex("]") + 1
+        ai_text = ai_text[start:end]
+    except ValueError:
+        pass
+
+    try:
         tasks = json.loads(ai_text)
         if isinstance(tasks, list):
             return {"tasks": tasks}
     except json.JSONDecodeError:
-        return {"tasks": [], "error": "AI returned invalid JSON", "raw": ai_text}
+        pass
 
-    return {"tasks": []}
+    return {"tasks": [], "error": "AI parse failed", "raw": ai_text[:500]}
 
 
 if __name__ == "__main__":

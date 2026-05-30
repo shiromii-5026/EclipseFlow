@@ -547,11 +547,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parsed = await parseResp.json();
 
                 if (parsed.tasks && parsed.tasks.length > 0) {
-                    // 弹出确认窗口，逐个确认
                     statusEl.textContent = `识别到 ${parsed.tasks.length} 个任务`;
                     openBatchConfirmModal(parsed.tasks);
                 } else if (parsed.error) {
-                    statusEl.textContent = 'AI 解析失败，请重试';
+                    statusEl.textContent = parsed.error;
                 } else {
                     statusEl.textContent = '未识别到可用的任务';
                 }
