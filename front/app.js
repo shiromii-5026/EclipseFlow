@@ -568,15 +568,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!modal) return;
 
             const colors = [
-                { val: '#c1ff00aa', name: '学习' },
-                { val: '#f498adaa', name: '生活' },
-                { val: '#0077ffaa', name: '工作' },
-                { val: '#7a5fffaa', name: '紧急' },
-                { val: '#ffffffaa', name: '其他' },
+                { val: '#7ab648aa', name: '课程' },
+                { val: '#d4a853aa', name: '工作' },
+                { val: '#5b8cbd', name: '活动' },
+                { val: '#c97d8b', name: '重要' },
+                { val: '#c8c0b0aa', name: '其他' },
             ];
 
             const colorOpts = colors.map(c =>
-                `<option value="${c.val}" ${(t.color || '#c1ff00aa') === c.val ? 'selected' : ''}>${c.name}</option>`
+                `<option value="${c.val}" ${(t.color || '#7ab648aa') === c.val ? 'selected' : ''}>${c.name}</option>`
             ).join('');
 
             modal.querySelector('.batch-confirm-body').innerHTML = `
@@ -631,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 taskData.startTime += ':00';
                 const colorSel = document.getElementById('batch-color');
-                taskData.color = colorSel ? colorSel.value : '#c1ff00aa';
+                taskData.color = colorSel ? colorSel.value : '#7ab648aa';
 
                 await api.saveTask(taskData);
                 currentIndex++;
@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         deadline: deadline,
                         taskType: taskType,
                         notes: t.notes || '',
-                        color: t.color || '#c1ff00aa',
+                        color: t.color || '#7ab648aa',
                     });
                 }
                 document.getElementById('batch-confirm-modal').remove();
@@ -718,11 +718,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <input type="text" id="edit-task-name" class="quick-input" value="${task.name}">
                         <label class="quick-label">Color</label>
                         <div class="quick-color-row">
-                            <button class="quick-color-option" data-color="#c1ff00aa" style="background:#c1ff00aa"></button>
-                            <button class="quick-color-option" data-color="#f498adaa" style="background:#f498adaa"></button>
-                            <button class="quick-color-option" data-color="#0077ffaa" style="background:#0077ffaa"></button>
-                            <button class="quick-color-option" data-color="#7a5fffaa" style="background:#7a5fffaa"></button>
-                            <button class="quick-color-option" data-color="#ffffffaa" style="background:#ffffffaa"></button>
+                            <button class="quick-color-option" data-color="#7ab648aa" style="background:#7ab648aa"></button>
+                            <button class="quick-color-option" data-color="#d4a853aa" style="background:#d4a853aa"></button>
+                            <button class="quick-color-option" data-color="#5b8cbd" style="background:#5b8cbd"></button>
+                            <button class="quick-color-option" data-color="#c97d8b" style="background:#c97d8b"></button>
+                            <button class="quick-color-option" data-color="#c8c0b0aa" style="background:#c8c0b0aa"></button>
                         </div>
                         <label class="quick-label">Notes</label>
                         <textarea id="edit-task-notes" class="quick-textarea" rows="4">${task.notes || ''}</textarea>
@@ -735,7 +735,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-        let selectedColor = task.color || '#c1ff00aa';
+        let selectedColor = task.color || '#7ab648aa';
 
         // 颜色小圆点点击切换，高亮当前选中的
         document.querySelectorAll('.quick-color-option').forEach(btn => {
@@ -1127,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const renderItem = (t, showRemaining) => {
             const [h, m] = t.time.split(':').map(Number);
             const startMin = h * 60 + m;
-            const color = t.color || '#c1ff00';
+            const color = t.color || '#7ab648';
 
             if (showRemaining) {
                 const duration = t.duration || 1;
