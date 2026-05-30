@@ -1113,47 +1113,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 侧边栏倒计时：列出今天进行中的任务，显示剩余时间
     function updateCountdown() {
-        const listEl = document.getElementById('countdown-list');
-        if (!listEl) return;
+        const activeEl = document.getElementById('countdown-list');
+        const upcomingEl = document.getElementById('upcoming-list');
+        if (!activeEl || !upcomingEl) return;
 
         const now = new Date();
         const todayStr = getCSTDateStr(now);
         const tasks = state.storage[todayStr] || [];
         const nowMin = now.getHours() * 60 + now.getMinutes();
 
-        // 筛选进行中的任务：已开始但未结束
-        const active = tasks.filter(t => {
-            if (!t.time || t.taskType === 'DDL') return false;
+        const active = [];
+        const upcoming = [];
+
+        tasks.forEach(t => {
+            if (!t.time || t.taskType === 'DDL') return;
             const [h, m] = t.time.split(':').map(Number);
             const startMin = h * 60 + m;
             const duration = t.duration || 1;
             const endMin = startMin + duration * 60;
-            return nowMin >= startMin && nowMin < endMin;
+
+            if (nowMin >= startMin && nowMin < endMin) {
+                active.push(t);
+            } else if (startMin > nowMin && startMin - nowMin <= 60) {
+                upcoming.push(t);
+            }
         });
 
-        if (active.length === 0) {
-            listEl.innerHTML = '<span class="countdown-empty">暂无进行中的任务</span>';
-            return;
-        }
+        // 按开始时间排序
+        const sortByTime = (a, b) => {
+            const am = parseInt(a.time.split(':')[0]) * 60 + parseInt(a.time.split(':')[1]);
+            const bm = parseInt(b.time.split(':')[0]) * 60 + parseInt(b.time.split(':')[1]);
+            return am - bm;
+        };
+        active.sort(sortByTime);
+        upcoming.sort(sortByTime);
 
-        listEl.innerHTML = active.map(t => {
+        const renderItem = (t, showRemaining) => {
             const [h, m] = t.time.split(':').map(Number);
             const startMin = h * 60 + m;
-            const duration = t.duration || 1;
-            const endMin = startMin + duration * 60;
-            const remaining = endMin - nowMin;
-            const remH = Math.floor(remaining / 60);
-            const remM = Math.floor(remaining % 60);
-            const timeStr = remH > 0 ? `${remH}h ${remM}m` : `${remM}m`;
+            const color = t.color || '#c1ff00';
 
-            return `
-                <div class="countdown-item">
-                    <span class="countdown-item-color" style="background:${t.color || '#c1ff00'}"></span>
+            if (showRemaining) {
+                const duration = t.duration || 1;
+                const endMin = startMin + duration * 60;
+                const remaining = endMin - nowMin;
+                const remH = Math.floor(remaining / 60);
+                const remM = Math.floor(remaining % 60);
+                const timeStr = remH > 0 ? `${remH}h ${remM}m` : `${remM}m`;
+                return `<div class="countdown-item">
+                    <span class="countdown-item-color" style="background:${color}"></span>
                     <span class="countdown-item-name">${t.name || t.taskName}</span>
                     <span class="countdown-item-time">${timeStr}</span>
-                </div>
-            `;
-        }).join('');
+                </div>`;
+            } else {
+                const waitMin = startMin - nowMin;
+                const waitStr = waitMin <= 0 ? '即将开始' : `${waitMin}分钟后`;
+                return `<div class="countdown-item">
+                    <span class="countdown-item-color" style="background:${color}"></span>
+                    <span class="countdown-item-name">${t.name || t.taskName}</span>
+                    <span class="countdown-item-time upcoming-time">${waitStr}</span>
+                </div>`;
+            }
+        };
+
+        activeEl.innerHTML = active.length > 0
+            ? active.map(t => renderItem(t, true)).join('')
+            : '<span class="countdown-empty">-</span>';
+
+        upcomingEl.innerHTML = upcoming.length > 0
+            ? upcoming.map(t => renderItem(t, false)).join('')
+            : '<span class="countdown-empty">-</span>';
     }
 
     init();
