@@ -462,7 +462,7 @@ body.dark-mode .countdown-panel {
 
 .countdown-empty {
     font-size: 0.72rem;
-    opacity: 0.4;
+    opacity: 0.7;
     font-weight: 600;
 }
 
@@ -475,6 +475,12 @@ body.dark-mode .countdown-panel {
     background: rgba(0, 0, 0, 0.03);
     font-size: 0.78rem;
     font-weight: 700;
+    color: var(--black);
+}
+
+body.dark-mode .countdown-item {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--black);
 }
 
 body.dark-mode .countdown-item {
