@@ -40,6 +40,7 @@ body {
     --white: #fff;
 
     --acid-green: #c1ff00;
+    --neon-purple: #a855f7;
 
     --today-highlight: rgba(193, 255, 0, 0.12);
 
@@ -79,36 +80,38 @@ body {
 
 body.dark-mode {
 
-    --bg: #0d0d12;
+    --bg: #0a0a10;
 
     --black: #e0e0e0;
 
-    --white: #17171c;
+    --white: #13131a;
 
-    --acid-green: #b8f200;
+    --acid-green: #c8ff00;
+
+    --neon-purple: #c084fc;
 
     --today-highlight:
-        rgba(184, 242, 0, 0.08);
+        rgba(200, 255, 0, 0.06);
 
     --border-subtle:
-        1px solid rgba(255, 255, 255, 0.08);
+        1px solid rgba(255, 255, 255, 0.06);
 
     --glass-border:
-        1px solid rgba(255,255,255,0.06);
+        1px solid rgba(255,255,255,0.05);
 
     --glass-bg:
         linear-gradient(
             145deg,
-            rgba(22,22,28,0.85),
-            rgba(14,14,18,0.8)
+            rgba(20,20,30,0.88),
+            rgba(12,12,18,0.82)
         );
 
     --glass-shadow:
-        0 10px 30px rgba(0,0,0,0.4),
-        0 30px 60px rgba(0,0,0,0.3);
+        0 10px 30px rgba(0,0,0,0.5),
+        0 30px 60px rgba(0,0,0,0.35);
 
     --grid-line:
-        rgba(255,255,255,0.06);
+        rgba(255,255,255,0.05);
 
     color-scheme: dark;
 }
@@ -208,7 +211,8 @@ body.dark-mode #weekly-scroll-container::before,
 body.dark-mode #weekly-scroll-container::after,
 body.dark-mode .geometric-add-form::before,
 body.dark-mode .geometric-add-form::after {
-    opacity: 0.4;
+    opacity: 0.5;
+    border-color: var(--neon-purple);
 }
 
 /* =========================================================
@@ -458,7 +462,7 @@ body.dark-mode .countdown-item {
     font-size: 0.85rem;
     font-weight: 900;
     font-variant-numeric: tabular-nums;
-    color: var(--acid-green);
+    color: var(--neon-purple);
     flex-shrink: 0;
 }
 
@@ -491,14 +495,14 @@ body.dark-mode .countdown-item {
 
 .mini-day.active {
 
-    background: var(--acid-green) !important;
+    background: var(--neon-purple) !important;
 
-    color: #000 !important;
+    color: #fff !important;
 
     font-weight: 900;
 
     box-shadow:
-        0 0 10px rgba(193,255,0,.4);
+        0 0 14px rgba(168, 85, 247, 0.5);
 }
 
 /* =========================================================
@@ -868,10 +872,11 @@ body.dark-mode .column-header {
 
     transform: translateY(-2px);
 
-    border-color: var(--acid-green);
+    border-color: var(--neon-purple);
 
     box-shadow:
         0 12px 30px rgba(0,0,0,.12),
+        0 0 20px rgba(168, 85, 247, 0.15),
         inset 0 1px 0 rgba(255,255,255,0.6);
 }
 
@@ -1101,10 +1106,10 @@ input[type="date"]:hover,
 #task-color-select:hover {
 
     border-color:
-        var(--acid-green) !important;
+        var(--neon-purple) !important;
 
     box-shadow:
-        0 0 20px rgba(193,255,0,.2) !important;
+        0 0 20px rgba(168, 85, 247, 0.2) !important;
 }
 
 /* =========================================================
@@ -1132,10 +1137,10 @@ body.dark-mode .time-picker-cyber:hover,
 body.dark-mode #task-color-select:hover {
 
     border-color:
-        var(--acid-green) !important;
+        var(--neon-purple) !important;
 
     box-shadow:
-        0 0 24px rgba(193, 255, 0, 0.25) !important;
+        0 0 24px rgba(168, 85, 247, 0.3) !important;
 }
 
 /* 日期选择器图标 */
@@ -1390,8 +1395,8 @@ body.dark-mode .cyber-select {
     pointer-events: none;
 
     box-shadow:
-        0 0 12px rgba(193, 255, 0, 0.6),
-        0 0 30px rgba(193, 255, 0, 0.25);
+        0 0 12px rgba(200, 255, 0, 0.7),
+        0 0 36px rgba(168, 85, 247, 0.35);
 }
 
 .current-time-line::before {
@@ -1414,7 +1419,8 @@ body.dark-mode .cyber-select {
 
     box-shadow:
         0 0 16px var(--acid-green),
-        0 0 32px rgba(193, 255, 0, 0.6);
+        0 0 36px rgba(200, 255, 0, 0.7),
+        0 0 48px rgba(168, 85, 247, 0.4);
 }
 
 /* =========================================================
@@ -1748,6 +1754,47 @@ body.dark-mode .cyber-select {
 
     box-shadow:
         0 0 0 4px rgba(193,255,0,.18);
+}
+
+/* =========================================================
+   批量确认弹窗（OCR + AI 解析后）
+========================================================= */
+
+.batch-confirm-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.batch-progress {
+    font-size: 0.75rem;
+    font-weight: 900;
+    opacity: 0.4;
+    text-align: right;
+    letter-spacing: 1px;
+}
+
+.batch-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.batch-field {
+    flex: 1;
+    min-width: 90px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.batch-field .quick-input {
+    height: 38px;
+    font-size: 0.8rem;
+}
+
+.batch-field .quick-label {
+    font-size: 0.68rem;
 }
 
 /* =========================================================

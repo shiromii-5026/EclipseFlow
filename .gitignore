@@ -32,3 +32,4 @@ venv/
 package-lock.json
 ocr-service/ocr.log
 ocr-service/test.png
+ocr-service/test*.png

@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.style.top = `${startDecimal * CONFIG.HOUR_HEIGHT + CONFIG.HEADER_HEIGHT}px`;
 
                     if (isDDL) {
-                        const ddlColor = t.color || '#c1ff00';
+                        const ddlColor = t.color || '#a855f7';
                         item.style.setProperty('--ddl-color', ddlColor.substring(0, 7));
                         item.style.height = '4px';
                         item.style.minHeight = '4px';
@@ -508,10 +508,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         async function uploadAndRecognize(file) {
-            statusEl.textContent = '识别中...';
+            statusEl.textContent = 'OCR 识别中...';
             statusEl.style.display = 'block';
-            statusEl.style.whiteSpace = 'pre-line';
-            statusEl.style.cursor = 'default';
+            statusEl.style.color = 'var(--black)';
             dropZone.style.pointerEvents = 'none';
             dropZone.style.opacity = '0.6';
 
@@ -528,50 +527,202 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const result = await resp.json();
 
-                if (result.text) {
-                    const lines = result.text.split('\n');
-                    // 第一行自动填入任务名
-                    if (lines.length > 0) {
-                        nameInput.value = lines[0];
-                    }
-                    // 全部文本展示在状态栏，点击某一行可切换填入任务名
-                    statusEl.innerHTML = '';
-                    lines.forEach((line, i) => {
-                        const span = document.createElement('span');
-                        span.textContent = line;
-                        span.style.display = 'block';
-                        span.style.cursor = 'pointer';
-                        span.style.padding = '1px 0';
-                        span.title = '点击填入任务名';
-                        span.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            nameInput.value = line;
-                            // 高亮当前选中行
-                            statusEl.querySelectorAll('span').forEach(s => s.style.opacity = '0.5');
-                            span.style.opacity = '1';
-                        });
-                        statusEl.appendChild(span);
-                    });
-                    statusEl.style.color = 'var(--black)';
-                } else {
+                if (!result.text) {
                     statusEl.textContent = '未识别到文字';
+                    return;
+                }
+
+                // OCR 成功，发给 AI 解析
+                statusEl.textContent = 'AI 整理中...';
+
+                const today = getCSTDateStr(new Date());
+                const parseResp = await fetch(`${CONFIG.OCR_BASE}/parse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: result.text, today }),
+                });
+
+                if (!parseResp.ok) throw new Error('Parse service error');
+
+                const parsed = await parseResp.json();
+
+                if (parsed.tasks && parsed.tasks.length > 0) {
+                    // 弹出确认窗口，逐个确认
+                    statusEl.textContent = `识别到 ${parsed.tasks.length} 个任务`;
+                    openBatchConfirmModal(parsed.tasks);
+                } else if (parsed.error) {
+                    statusEl.textContent = 'AI 解析失败，请重试';
+                } else {
+                    statusEl.textContent = '未识别到可用的任务';
                 }
             } catch (err) {
                 statusEl.textContent = 'OCR 服务未启动';
             } finally {
                 dropZone.style.pointerEvents = 'auto';
                 dropZone.style.opacity = '1';
-                // 点其他地方恢复为空
-                const hide = () => {
-                    statusEl.textContent = '';
-                    statusEl.style.display = '';
-                    statusEl.style.whiteSpace = '';
-                    statusEl.style.color = '';
-                    document.removeEventListener('click', hide);
-                };
-                setTimeout(() => document.addEventListener('click', hide), 100);
+                setTimeout(() => {
+                    if (statusEl.textContent === 'OCR 服务未启动' || statusEl.textContent === 'AI 解析失败，请重试') {
+                        // keep error message
+                    } else {
+                        statusEl.textContent = '';
+                        statusEl.style.display = '';
+                    }
+                }, 4000);
             }
         }
+    }
+
+    // AI 解析后的批量确认弹窗，逐个确认任务
+    function openBatchConfirmModal(tasks) {
+        const existing = document.getElementById('batch-confirm-modal');
+        if (existing) existing.remove();
+
+        let currentIndex = 0;
+        const total = tasks.length;
+
+        function renderTask(index) {
+            if (index >= total) {
+                document.getElementById('batch-confirm-modal').remove();
+                ui.showToast('全部任务已处理');
+                ui.fetchTasks ? api.fetchTasks() : null;
+                return;
+            }
+            const t = tasks[index];
+            const modal = document.getElementById('batch-confirm-modal');
+            if (!modal) return;
+
+            const colors = [
+                { val: '#c1ff00aa', name: '学习' },
+                { val: '#f498adaa', name: '生活' },
+                { val: '#0077ffaa', name: '工作' },
+                { val: '#7a5fffaa', name: '紧急' },
+                { val: '#ffffffaa', name: '其他' },
+            ];
+
+            const colorOpts = colors.map(c =>
+                `<option value="${c.val}" ${(t.color || '#c1ff00aa') === c.val ? 'selected' : ''}>${c.name}</option>`
+            ).join('');
+
+            modal.querySelector('.batch-confirm-body').innerHTML = `
+                <div class="batch-progress">${index + 1} / ${total}</div>
+                <label class="quick-label">任务名</label>
+                <input id="batch-task-name" class="quick-input" value="${t.taskName || ''}">
+                <div class="batch-row">
+                    <div class="batch-field">
+                        <label class="quick-label">日期</label>
+                        <input id="batch-date" class="quick-input" type="date" value="${t.taskDate || ''}">
+                    </div>
+                    <div class="batch-field">
+                        <label class="quick-label">开始时间</label>
+                        <input id="batch-start" class="quick-input" type="time" value="${t.startTime || '09:00'}">
+                    </div>
+                    <div class="batch-field">
+                        <label class="quick-label">截止（可选）</label>
+                        <input id="batch-end" class="quick-input" type="time" value="${t.endTime || ''}">
+                    </div>
+                    <div class="batch-field">
+                        <label class="quick-label">颜色</label>
+                        <select id="batch-color" class="quick-input">${colorOpts}</select>
+                    </div>
+                </div>
+                <label class="quick-label">备注</label>
+                <textarea id="batch-notes" class="quick-textarea" rows="2">${t.notes || ''}</textarea>
+            `;
+
+            modal.querySelector('#batch-confirm-btn').onclick = async () => {
+                const taskData = {
+                    taskName: document.getElementById('batch-task-name').value.trim(),
+                    taskDate: document.getElementById('batch-date').value,
+                    startTime: document.getElementById('batch-start').value,
+                    duration: 0,
+                    deadline: null,
+                    taskType: 'DDL',
+                    notes: document.getElementById('batch-notes').value.trim(),
+                };
+
+                const endTime = document.getElementById('batch-end').value;
+                if (endTime) {
+                    const startMin = parseInt(taskData.startTime.split(':')[0]) * 60 + parseInt(taskData.startTime.split(':')[1]);
+                    const endMin = parseInt(endTime.split(':')[0]) * 60 + parseInt(endTime.split(':')[1]);
+                    if (endMin > startMin) {
+                        taskData.duration = (endMin - startMin) / 60;
+                        taskData.deadline = endTime + ':00';
+                        taskData.taskType = 'BLOCK';
+                    }
+                } else {
+                    taskData.deadline = taskData.startTime + ':00';
+                }
+
+                taskData.startTime += ':00';
+                const colorSel = document.getElementById('batch-color');
+                taskData.color = colorSel ? colorSel.value : '#c1ff00aa';
+
+                await api.saveTask(taskData);
+                currentIndex++;
+                renderTask(currentIndex);
+            };
+
+            modal.querySelector('#batch-skip-btn').onclick = () => {
+                currentIndex++;
+                renderTask(currentIndex);
+            };
+
+            modal.querySelector('#batch-all-btn').onclick = async () => {
+                // 一键确认剩下的全部
+                for (let i = index; i < total; i++) {
+                    const t = tasks[i];
+                    const startTime = (t.startTime || '09:00') + ':00';
+                    let duration = 0, deadline = startTime, taskType = 'DDL';
+                    if (t.endTime) {
+                        const sm = parseInt(startTime.split(':')[0]) * 60 + parseInt(startTime.split(':')[1]);
+                        const em = parseInt(t.endTime.split(':')[0]) * 60 + parseInt(t.endTime.split(':')[1]);
+                        if (em > sm) {
+                            duration = (em - sm) / 60;
+                            deadline = t.endTime + ':00';
+                            taskType = 'BLOCK';
+                        }
+                    }
+                    await api.saveTask({
+                        taskName: t.taskName || '',
+                        taskDate: t.taskDate || getCSTDateStr(new Date()),
+                        startTime: startTime,
+                        duration: duration,
+                        deadline: deadline,
+                        taskType: taskType,
+                        notes: t.notes || '',
+                        color: t.color || '#c1ff00aa',
+                    });
+                }
+                document.getElementById('batch-confirm-modal').remove();
+                ui.showToast(`${total} 个任务已全部导入`);
+                api.fetchTasks();
+            };
+
+            modal.querySelector('#batch-cancel-btn').onclick = () => {
+                document.getElementById('batch-confirm-modal').remove();
+            };
+        }
+
+        const modalHtml = `
+            <div id="batch-confirm-modal" class="quick-edit-overlay">
+                <div class="quick-edit-panel" style="width:480px;max-height:90vh;overflow-y:auto;">
+                    <div class="quick-edit-header">
+                        <span class="quick-edit-title">确认导入任务</span>
+                        <button id="batch-cancel-btn" class="quick-close-btn">✕</button>
+                    </div>
+                    <div class="batch-confirm-body"></div>
+                    <div class="quick-edit-footer" style="justify-content:space-between;">
+                        <button id="batch-all-btn" class="quick-save-btn" style="background:var(--white);color:var(--black);border:1px solid var(--black);">一键确认</button>
+                        <div style="display:flex;gap:8px;">
+                            <button id="batch-skip-btn" class="quick-save-btn" style="background:transparent;color:var(--black);border:1px solid var(--black);">跳过</button>
+                            <button id="batch-confirm-btn" class="quick-save-btn">确认并保存</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        renderTask(0);
     }
 
     // 双击任务卡片的弹窗：改名字、颜色、备注
