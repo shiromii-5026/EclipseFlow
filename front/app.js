@@ -174,6 +174,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 dayEl.addEventListener('click', () => {
                     state.currentFocusDate = dateObj;
                     this.renderAll();
+                    // 滚动到当天第一个任务
+                    setTimeout(() => {
+                        const col = document.querySelector(`.day-column[data-date="${dateStr}"]`);
+                        if (col) {
+                            const firstTask = col.querySelector('.event-item');
+                            if (firstTask) {
+                                firstTask.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        }
+                    }, 50);
                 });
                 container.appendChild(dayEl);
             }
