@@ -529,6 +529,8 @@ body.dark-mode .countdown-item {
     justify-content: center;
     align-items: center;
 
+    position: relative;
+
     border-radius: 6px;
 
     font-size: .8rem;
@@ -537,10 +539,12 @@ body.dark-mode .countdown-item {
 
 .mini-day.has-tasks::after {
     content: "";
-    display: block;
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
     width: 12px;
     height: 2px;
-    margin: 0 auto;
     background: var(--accent);
     border-radius: 1px;
 }
