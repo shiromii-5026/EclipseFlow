@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.style.top = `${startDecimal * CONFIG.HOUR_HEIGHT + CONFIG.HEADER_HEIGHT}px`;
 
                     if (isDDL) {
-                        const ddlColor = t.color || '#a855f7';
+                        const ddlColor = t.color || '#c1ff00';
                         item.style.setProperty('--ddl-color', ddlColor.substring(0, 7));
                         item.style.height = '4px';
                         item.style.minHeight = '4px';
