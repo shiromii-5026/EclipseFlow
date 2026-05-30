@@ -504,8 +504,7 @@ body.dark-mode .countdown-item {
 }
 
 .upcoming-time {
-    color: inherit;
-    opacity: 0.6;
+    color: var(--accent);
 }
 
 .mini-grid-head,
