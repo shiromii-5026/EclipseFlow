@@ -1,0 +1,1729 @@
+/* =========================================================
+   IMPORT
+========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap');
+
+/* =========================================================
+   RESET
+========================================================= */
+
+* {
+    box-sizing: border-box;
+    font-family: 'Noto Sans SC', sans-serif;
+}
+
+body {
+    margin: 0;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    position: relative;
+
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--black) 1px, transparent 1px);
+    background-size: 30px 30px;
+    background-attachment: fixed;
+
+    color: var(--black);
+}
+
+/* =========================================================
+   VARIABLES
+========================================================= */
+
+:root {
+
+    --bg: #fcfcfc;
+
+    --black: #000;
+    --white: #fff;
+
+    --acid-green: #c1ff00;
+
+    --today-highlight: rgba(193, 255, 0, 0.12);
+
+    --border-subtle:
+        1px solid rgba(0, 0, 0, 0.1);
+
+    --glass-border:
+        1px solid rgba(255,255,255,0.12);
+
+    --glass-bg:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,0.18),
+            rgba(255,255,255,0.08)
+        );
+
+    --glass-shadow:
+        0 10px 30px rgba(0,0,0,0.12),
+        0 30px 60px rgba(0,0,0,0.08);
+
+    --grid-line:
+        rgba(0, 0, 0, 0.08);
+
+    --hour-height: 80px;
+
+    --header-height: 60px;
+
+    --gutter-width: 70px;
+
+    --ease-fluid:
+        cubic-bezier(0.23,1,0.32,1);
+}
+
+/* =========================================================
+   DARK MODE
+========================================================= */
+
+body.dark-mode {
+
+    --bg: #1a1a1e;
+
+    --black: #f0f0f0;
+
+    --white: #252529;
+
+    --acid-green: #a3cc29bf;
+
+    --today-highlight:
+        rgba(162, 215, 0, 0.1);
+
+    --border-subtle:
+        1px solid rgba(255, 255, 255, 0.1);
+
+    --glass-border:
+        1px solid rgba(255,255,255,0.08);
+
+    --glass-bg:
+        linear-gradient(
+            145deg,
+            rgba(37,37,41,0.78),
+            rgba(24,24,30,0.72)
+        );
+
+    --glass-shadow:
+        0 10px 30px rgba(0,0,0,0.24),
+        0 30px 60px rgba(0,0,0,0.18);
+
+    --grid-line:
+        rgba(255,255,255,0.08);
+
+    color-scheme: dark;
+}
+
+/* =========================================================
+   SCANLINE
+========================================================= */
+
+body::before {
+
+    content: "";
+
+    position: fixed;
+
+    inset: 0;
+
+    background:
+        linear-gradient(
+            rgba(18,16,16,0) 50%,
+            rgba(0,0,0,0.02) 50%
+        );
+
+    background-size: 100% 4px;
+
+    pointer-events: none;
+
+    opacity: 0.4;
+
+    z-index: 9999;
+}
+
+/* =========================================================
+   GLASS SYSTEM
+========================================================= */
+
+.sidebar,
+#weekly-scroll-container,
+.geometric-add-form,
+.task-context-menu,
+.quick-edit-panel {
+
+    background: var(--glass-bg);
+
+    backdrop-filter:
+        blur(30px)
+        saturate(180%);
+
+    -webkit-backdrop-filter:
+        blur(30px)
+        saturate(180%);
+
+    border: var(--glass-border);
+
+    box-shadow: var(--glass-shadow);
+}
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.sidebar {
+
+    width: 280px;
+
+    margin: 20px 0 20px 20px;
+
+    padding: 25px;
+
+    border-radius: 24px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    flex-shrink: 0;
+
+    z-index: 10;
+}
+
+.logo-area {
+
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    position: relative;
+
+    font-size: 1.4rem;
+    font-weight: 900;
+}
+
+.logo-area::before {
+
+    content: "";
+
+    position: absolute;
+
+    bottom: -5px;
+
+    width: 100%;
+    height: 2px;
+
+    background:
+        repeating-linear-gradient(
+            90deg,
+            var(--acid-green),
+            var(--acid-green) 5px,
+            transparent 5px,
+            transparent 10px
+        );
+}
+
+/* =========================================================
+   MINI CALENDAR
+========================================================= */
+
+.mini-calendar {
+
+    padding: 18px;
+
+    border-radius: 20px;
+
+    background:
+        rgba(255,255,255,0.08);
+
+    border: var(--glass-border);
+
+    box-shadow:
+        inset 0 0 20px rgba(255,255,255,0.04);
+}
+
+.month-nav {
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 15px;
+
+    font-weight: 900;
+}
+
+.month-nav button,
+.today-link {
+
+    border: none;
+
+    background: var(--black);
+
+    color: var(--white);
+
+    font-weight: 900;
+
+    cursor: pointer;
+}
+
+.month-nav button {
+
+    padding: 4px 10px;
+
+    border-radius: 6px;
+}
+
+.today-link {
+
+    width: 100%;
+
+    margin-top: 15px;
+
+    padding: 10px;
+
+    border-radius: 10px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    transition:
+        transform .2s ease,
+        opacity .2s ease;
+}
+
+.today-link:active {
+
+    transform: scale(.96);
+
+    opacity: .8;
+}
+
+.mini-grid-head,
+.mini-days {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(7,1fr);
+
+    gap: 4px;
+
+    text-align: center;
+}
+
+.mini-day {
+
+    aspect-ratio: 1;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border-radius: 6px;
+
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+.mini-day.active {
+
+    background: var(--acid-green) !important;
+
+    color: #000 !important;
+
+    font-weight: 900;
+
+    box-shadow:
+        0 0 10px rgba(193,255,0,.4);
+}
+
+/* =========================================================
+   MAIN CONTENT
+========================================================= */
+
+.main-content {
+
+    flex: 1;
+
+    padding: 40px 40px 30px;
+
+    display: flex;
+    flex-direction: column;
+
+    position: relative;
+}
+
+/* =========================================================
+   TOP RIGHT
+========================================================= */
+
+.top-right-nav {
+
+    position: absolute;
+
+    top: 40px;
+    right: 40px;
+
+    z-index: 100;
+
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-meta-group {
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-text {
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    text-align: right;
+
+    line-height: 1.1;
+}
+
+.u-name {
+
+    font-size: 1.05rem;
+    font-weight: 900;
+
+    letter-spacing: .5px;
+}
+
+.u-status {
+
+    margin-top: 2px;
+
+    font-size: .65rem;
+    font-weight: 700;
+
+    opacity: .4;
+}
+
+.avatar-pixel {
+
+    width: 42px;
+    height: 42px;
+
+    padding: 2px;
+
+    border-radius: 10px;
+
+    border: var(--border-subtle);
+
+    background: var(--white);
+
+    box-shadow:
+        0 4px 10px rgba(0,0,0,.05);
+}
+
+.theme-btn {
+
+    width: 42px;
+    height: 42px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background: var(--black);
+
+    color: var(--bg);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    cursor: pointer;
+
+    transition: transform .2s ease;
+}
+
+.theme-btn:hover {
+
+    transform: rotate(15deg);
+}
+
+/* =========================================================
+   WEEKLY CONTAINER
+========================================================= */
+
+#weekly-scroll-container {
+
+    flex: 1;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    margin-bottom: 25px;
+
+    border-radius: 20px;
+}
+
+.weekly-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        var(--gutter-width)
+        repeat(7,1fr);
+
+    width: 100%;
+}
+
+/* =========================================================
+   TIME GUTTER
+========================================================= */
+
+.time-gutter {
+
+    border-right: var(--border-subtle);
+}
+
+.time-slot-label {
+
+    height: var(--hour-height);
+
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+
+    padding-top: 2px;
+
+    font-size: .7rem;
+    font-weight: 700;
+
+    letter-spacing: .5px;
+
+    opacity: .35;
+}
+
+/* =========================================================
+   DAY COLUMN
+========================================================= */
+
+.day-column {
+
+    position: relative;
+
+    height:
+        calc(
+            24 * var(--hour-height)
+            + var(--header-height)
+        );
+
+    border-right:
+        1px dashed var(--grid-line);
+
+    background-image:
+
+        linear-gradient(
+            to bottom,
+            rgba(255,255,255,.03),
+            transparent 20%
+        ),
+
+        linear-gradient(
+            to bottom,
+            var(--grid-line) 1px,
+            transparent 1px
+        ),
+
+        linear-gradient(
+            to bottom,
+            rgba(0,0,0,.04) 1px,
+            transparent 1px
+        );
+
+    background-size:
+        100% var(--hour-height),
+        100% calc(var(--hour-height) / 2);
+
+    background-position:
+        0 var(--header-height);
+}
+
+.day-column.today {
+
+    background-color: var(--today-highlight);
+
+    box-shadow:
+        inset 0 0 40px rgba(193,255,0,.05);
+}
+
+/* =========================================================
+   COLUMN HEADER
+========================================================= */
+
+.column-header {
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 20;
+
+    height: var(--header-height);
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    text-align: center;
+
+    font-size: .9rem;
+    font-weight: 900;
+
+    border-bottom: var(--border-subtle);
+
+    background: var(--white);
+
+    color: var(--black);
+
+    backdrop-filter: blur(10px);
+}
+
+.column-header.today-header {
+
+    color: var(--acid-green);
+
+    text-shadow:
+        0 0 10px rgba(193,255,0,.4);
+}
+
+/* =========================================================
+   EVENT ITEM
+========================================================= */
+
+.event-item {
+
+    position: absolute;
+
+    left: 6px;
+    right: 6px;
+
+    margin-bottom: 6px;
+
+    padding: 10px;
+
+    border-radius: 12px;
+
+    display: flex;
+    flex-direction: column;
+
+    z-index: 5;
+
+    background: var(--white);
+
+    border: var(--border-subtle);
+
+    color: var(--black);
+
+    box-shadow:
+        0 4px 15px rgba(0,0,0,.05);
+
+    backdrop-filter: blur(12px);
+
+    user-select: none;
+    -webkit-user-select: none;
+
+    touch-action: none;
+
+    transition:
+        transform .2s ease,
+        box-shadow .25s ease,
+        border-color .25s ease;
+}
+
+.event-item:hover {
+
+    transform: translateY(-2px);
+
+    border-color: var(--acid-green);
+
+    box-shadow:
+        0 12px 30px rgba(0,0,0,.12);
+}
+
+.event-item.important {
+
+    background: var(--acid-green) !important;
+
+    border: none;
+
+    box-shadow:
+        0 8px 20px rgba(193,255,0,.3);
+}
+
+.event-time-tag {
+
+    margin-bottom: 2px;
+
+    font-size: .65rem;
+    font-weight: 700;
+
+    opacity: .6;
+}
+
+.event-name-text {
+
+    padding-right: 22px;
+
+    line-height: 1.2;
+
+    font-size: .85rem;
+    font-weight: 900;
+}
+
+.del-btn-mini {
+
+    position: absolute;
+
+    top: 8px;
+    right: 8px;
+
+    width: 18px;
+    height: 18px;
+
+    border-radius: 5px;
+
+    border:
+        1px solid rgba(0,0,0,.1);
+
+    background:
+        rgba(255,255,255,.4);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    cursor: pointer;
+
+    font-size: 10px;
+}
+
+/* =========================================================
+   ADD TASK SECTION
+========================================================= */
+
+#add-task-section {
+
+    width: 100%;
+}
+
+.geometric-add-form {
+
+    width: 100%;
+
+    padding: 16px 24px;
+
+    border-radius: 24px;
+
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    position: relative;
+
+    overflow: hidden;
+}
+
+.input-group {
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* =========================================================
+   INPUT SYSTEM
+========================================================= */
+
+#task-name-input,
+input[type="date"],
+.time-picker-cyber,
+#task-color-select {
+
+    min-width: 130px;
+
+    height: 48px !important;
+
+    padding:
+        0 15px !important;
+
+    padding-right:
+        30px !important;
+
+    border-radius: 14px !important;
+
+    border:
+        1.5px solid var(--black) !important;
+
+    background:
+        rgba(255,255,255,.9) !important;
+
+    color:
+        var(--black) !important;
+
+    font-family:
+        'Noto Sans SC', sans-serif !important;
+
+    font-weight: 900 !important;
+
+    outline: none;
+
+    box-sizing: border-box;
+
+    transition:
+        all .3s var(--ease-fluid);
+}
+
+#task-name-input {
+
+    flex: 1;
+}
+
+#task-name-input:hover,
+input[type="date"]:hover,
+.time-picker-cyber:hover,
+#task-color-select:hover {
+
+    border-color:
+        var(--acid-green) !important;
+
+    box-shadow:
+        0 0 20px rgba(193,255,0,.2) !important;
+}
+
+body.dark-mode #task-name-input,
+body.dark-mode input[type="date"],
+body.dark-mode .time-picker-cyber,
+body.dark-mode #task-color-select {
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(40,40,45,.8),
+            rgba(20,20,25,.6)
+        ) !important;
+
+    border:
+        1px solid rgba(255,255,255,.15) !important;
+
+    color:
+        rgba(255,255,255,.92) !important;
+}
+
+/* 日期选择器文字 */
+body.dark-mode input[type="date"],
+body.dark-mode #task-color-select {
+
+    color: inherit !important;
+
+    opacity: 0.75;
+}
+body.dark-mode #task-color-select option {
+
+    background: #252529;
+
+    color: inherit;
+}
+
+/* 日期选择器日历图标 */
+body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
+
+    filter:
+        invert(1)
+        opacity(.6);
+}
+
+/* select 下拉文字 */
+
+body.dark-mode #task-color-select,
+body.dark-mode #task-color-select option {
+
+    color:
+        rgba(255,255,255,.92) !important;
+
+    background:
+        #252529 !important;
+}
+
+/* =========================================================
+   TIME PICKER
+========================================================= */
+
+.time-picker-cyber {
+
+    min-width: 120px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    position: relative;
+
+    z-index: 10;
+}
+
+.cyber-select {
+
+    width: 42px;
+
+    border: none !important;
+
+    background: transparent !important;
+
+    color: inherit;
+
+    text-align: center;
+
+    font-size: 1.05rem;
+    font-weight: 900;
+
+    cursor: pointer;
+
+    outline: none;
+
+    transition: transform .2s ease;
+}
+
+body.dark-mode .cyber-select,
+body.dark-mode .cyber-divider {
+
+    color: #ffffff;
+
+    opacity: .4;
+}
+
+body.dark-mode .geometric-add-form:hover .cyber-select {
+
+    color: var(--acid-green);
+
+    opacity: 1;
+}
+
+/* =========================================================
+   SAVE BUTTON
+========================================================= */
+
+#save-task-btn {
+
+    height: 48px;
+
+    padding: 0 28px;
+
+    border-radius: 14px;
+
+    border:
+        1.5px solid var(--black);
+
+    background:
+        var(--acid-green);
+
+    color: var(--black);
+
+    font-weight: 900;
+
+    letter-spacing: 1px;
+
+    text-transform: uppercase;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 8px 20px rgba(193,255,0,.3);
+
+    transition:
+        all .3s ease;
+}
+
+#save-task-btn:hover {
+
+    transform: scale(1.02);
+
+    background: #dfff00;
+
+    box-shadow:
+        0 12px 25px rgba(193,255,0,.4);
+}
+
+/* =========================================================
+   SAVE TOAST
+========================================================= */
+
+.save-toast {
+
+    position: fixed;
+
+    bottom: 30px;
+    left: 50%;
+
+    transform:
+        translateX(-50%)
+        translateY(100px);
+
+    z-index: 9999;
+
+    padding: 14px 28px;
+
+    border-radius: 50px;
+
+    background:
+        rgba(0,0,0,.8);
+
+    backdrop-filter: blur(10px);
+
+    border:
+        1px solid var(--acid-green);
+
+    color: var(--acid-green);
+
+    font-weight: 900;
+
+    letter-spacing: 1px;
+
+    transition:
+        transform .5s cubic-bezier(0.175,0.885,0.32,1.275);
+}
+
+/* =========================================================
+   RESIZE HANDLE
+========================================================= */
+
+.resize-handle {
+
+    position: absolute;
+
+    left: 0;
+    right: 0;
+
+    height: 12px;
+
+    z-index: 10;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background:
+        rgba(255,255,255,.4);
+
+    backdrop-filter: blur(4px);
+
+    color: #333;
+
+    font-size: 10px;
+
+    opacity: 0;
+
+    transition:
+        opacity .4s ease .3s;
+}
+
+.resize-handle.top {
+
+    top: 0;
+
+    cursor: ns-resize;
+
+    border-radius: 6px 6px 0 0;
+}
+
+.resize-handle.bottom {
+
+    bottom: 0;
+
+    cursor: ns-resize;
+
+    border-radius: 0 0 6px 6px;
+}
+
+.event-item:hover .resize-handle {
+
+    opacity: 1;
+}
+
+/* =========================================================
+   CURRENT TIME LINE
+========================================================= */
+
+.current-time-line {
+
+    position: absolute;
+
+    left: 0;
+    right: 0;
+
+    height: 2px;
+
+    z-index: 50;
+
+    background: var(--acid-green);
+
+    pointer-events: none;
+
+    box-shadow:
+        0 0 8px var(--acid-green),
+        0 0 16px rgba(193,255,0,.4);
+}
+
+.current-time-line::before {
+
+    content: "";
+
+    position: absolute;
+
+    left: -4px;
+    top: 50%;
+
+    width: 10px;
+    height: 10px;
+
+    border-radius: 50%;
+
+    background: var(--acid-green);
+
+    transform: translateY(-50%);
+
+    box-shadow:
+        0 0 10px var(--acid-green),
+        0 0 20px rgba(193,255,0,.5);
+}
+
+/* =========================================================
+   CONTEXT MENU
+========================================================= */
+
+.task-context-menu {
+
+    position: fixed;
+
+    min-width: 220px;
+
+    padding: 8px;
+
+    border-radius: 20px;
+
+    z-index: 9999;
+
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    opacity: 1;
+
+    transform:
+        scale(1)
+        translateY(0);
+
+    transition:
+        opacity .18s ease,
+        transform .22s var(--ease-fluid);
+}
+
+.task-context-menu.hidden {
+
+    opacity: 0;
+
+    pointer-events: none;
+
+    transform:
+        scale(.96)
+        translateY(6px);
+}
+
+.context-item {
+
+    height: 42px;
+
+    padding: 0 14px;
+
+    border: none;
+
+    border-radius: 14px;
+
+    background: transparent;
+
+    color: var(--black);
+
+    display: flex;
+    align-items: center;
+
+    font-size: .9rem;
+    font-weight: 800;
+
+    cursor: pointer;
+
+    transition:
+        background .18s ease,
+        transform .18s ease;
+}
+
+.context-item:hover {
+
+    background:
+        rgba(193,255,0,.18);
+
+    transform:
+        translateX(2px);
+}
+
+.context-divider {
+
+    height: 1px;
+
+    margin: 4px 0;
+
+    background:
+        rgba(255,255,255,.08);
+}
+
+.context-item.danger:hover {
+
+    background:
+        rgba(255,80,80,.16);
+
+    color:
+        #ff4d4d;
+}
+
+/* =========================================================
+   QUICK EDIT
+========================================================= */
+
+.quick-edit-overlay {
+
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 10000;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background:
+        rgba(0,0,0,.22);
+
+    backdrop-filter:
+        blur(12px);
+
+    animation:
+        quickFade .22s ease;
+}
+
+.quick-edit-panel {
+
+    width: 380px;
+
+    padding: 22px;
+
+    border-radius: 28px;
+
+    animation:
+        quickPop .28s var(--ease-fluid);
+}
+
+.quick-edit-header {
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    margin-bottom: 20px;
+}
+
+.quick-edit-title {
+
+    font-size: .95rem;
+    font-weight: 900;
+
+    letter-spacing: 1px;
+
+    opacity: .8;
+}
+
+.quick-close-btn {
+
+    width: 34px;
+    height: 34px;
+
+    border: none;
+
+    border-radius: 12px;
+
+    background:
+        rgba(255,255,255,.08);
+
+    color: var(--black);
+
+    cursor: pointer;
+
+    transition:
+        background .2s ease,
+        transform .2s ease;
+}
+
+.quick-close-btn:hover {
+
+    background:
+        rgba(255,80,80,.16);
+
+    transform:
+        rotate(90deg);
+}
+
+.quick-edit-body {
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.quick-label {
+
+    margin-top: 4px;
+
+    font-size: .78rem;
+    font-weight: 800;
+
+    opacity: .6;
+}
+
+.quick-input,
+.quick-textarea {
+
+    width: 100%;
+
+    padding: 14px;
+
+    border-radius: 16px;
+
+    border:
+        1px solid rgba(255,255,255,.08);
+
+    background:
+        rgba(255,255,255,.08);
+
+    color: var(--black);
+
+    font-weight: 700;
+
+    outline: none;
+
+    transition:
+        border-color .2s ease,
+        box-shadow .2s ease,
+        background .2s ease;
+}
+
+.quick-input:focus,
+.quick-textarea:focus {
+
+    border-color:
+        var(--acid-green);
+
+    box-shadow:
+        0 0 0 4px rgba(193,255,0,.12);
+}
+
+.quick-textarea {
+
+    resize: none;
+}
+
+.quick-edit-footer {
+
+    margin-top: 22px;
+
+    display: flex;
+    justify-content: flex-end;
+}
+
+.quick-save-btn {
+
+    height: 46px;
+
+    padding: 0 22px;
+
+    border: none;
+
+    border-radius: 16px;
+
+    background: var(--acid-green);
+
+    color: #000;
+
+    font-weight: 900;
+
+    cursor: pointer;
+
+    transition:
+        transform .18s ease,
+        box-shadow .22s ease;
+}
+
+.quick-save-btn:hover {
+
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        0 10px 24px rgba(193,255,0,.28);
+}
+
+/* =========================================================
+   QUICK COLOR
+========================================================= */
+
+.quick-color-row {
+
+    display: flex;
+
+    gap: 10px;
+
+    margin-top: 6px;
+    margin-bottom: 8px;
+}
+
+.quick-color-option {
+
+    width: 28px;
+    height: 28px;
+
+    border-radius: 50%;
+
+    border:
+        2px solid rgba(255,255,255,.2);
+
+    cursor: pointer;
+
+    transition:
+        transform .18s ease,
+        box-shadow .2s ease,
+        border-color .2s ease;
+}
+
+.quick-color-option:hover {
+
+    transform:
+        scale(1.12);
+
+    box-shadow:
+        0 0 14px rgba(255,255,255,.18);
+}
+
+.quick-color-option.active {
+
+    border-color:
+        var(--acid-green);
+
+    box-shadow:
+        0 0 0 4px rgba(193,255,0,.18);
+}
+
+/* =========================================================
+   ANIMATIONS
+========================================================= */
+
+@keyframes quickFade {
+
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes quickPop {
+
+    from {
+
+        opacity: 0;
+
+        transform:
+            scale(.94)
+            translateY(12px);
+    }
+
+    to {
+
+        opacity: 1;
+
+        transform:
+            scale(1)
+            translateY(0);
+    }
+}
+
+.cyber-deadline-input {
+    height: 42px;
+
+    padding: 0 12px;
+
+    border: 1px solid var(--line-color);
+
+    background: rgba(255,255,255,0.05);
+
+    color: var(--text-color);
+
+    border-radius: 10px;
+
+    font-size: 14px;
+}
+
+.task-form-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+
+    margin-top: 18px;
+}
+
+.task-form-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    flex-wrap: wrap;
+}
+
+.primary-row {
+    width: 100%;
+}
+
+.secondary-row {
+    opacity: 0.92;
+}
+
+.task-main-input {
+    flex: 1;
+
+    height: 48px;
+
+    padding: 0 16px;
+
+    border-radius: 14px;
+
+    border: 1px solid var(--line-color);
+
+    background: rgba(255,255,255,0.06);
+
+    color: var(--text-color);
+
+    font-size: 15px;
+}
+
+.cyber-input {
+    height: 42px;
+
+    padding: 0 12px;
+
+    border-radius: 12px;
+
+    border: 1px solid var(--line-color);
+
+    background: rgba(255,255,255,0.05);
+
+    color: var(--text-color);
+}
+
+.save-task-main-btn {
+    height: 48px;
+
+    padding: 0 22px;
+
+    border: none;
+
+    border-radius: 14px;
+
+    background: var(--acid-green);
+
+    color: black;
+
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.compact-task-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+.task-main-input {
+    width: 180px;
+    height: 36px;
+
+    padding: 0 10px;
+
+    border-radius: 8px;
+
+    border: 1px solid var(--line-color);
+
+    background: rgba(255,255,255,0.05);
+
+    color: var(--text-color);
+
+    flex-shrink: 0;
+}
+
+.cyber-input.small {
+    width: 125px;
+    height: 36px;
+
+    flex-shrink: 0;
+}
+
+.time-picker-cyber {
+    height: 36px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 6px;
+
+    flex-shrink: 0;
+}
+
+.cyber-select {
+    height: 30px;
+}
+
+.mini-color {
+    width: 58px;
+    height: 36px;
+
+    flex-shrink: 0;
+}
+
+.save-task-main-btn {
+    width: 36px;
+    height: 36px;
+
+    border: none;
+
+    border-radius: 8px;
+
+    background: var(--acid-green);
+
+    color: black;
+
+    font-weight: bold;
+
+    cursor: pointer;
+
+    flex-shrink: 0;
+}
+
+.deadline-label {
+    opacity: 0.6;
+    font-size: 14px;
+    margin-right: 4px;
+}
+
+/* =========================================================
+   DDL LINE TASK (截止日线任务)
+========================================================= */
+
+.ddl-line-task {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px !important;
+    min-height: 2px !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: var(--acid-green) !important;
+    box-shadow: 0 0 8px rgba(193, 255, 0, 0.5);
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    overflow: visible;
+    transition: box-shadow 0.2s ease;
+}
+
+.ddl-line-task:hover {
+    box-shadow: 0 0 16px rgba(193, 255, 0, 0.8);
+    z-index: 50;
+}
+
+/* DDL 线条左侧圆点标记 */
+.ddl-line-marker {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--acid-green);
+    box-shadow: 0 0 6px rgba(193, 255, 0, 0.7);
+    flex-shrink: 0;
+}
+
+/* DDL 标签：显示在线的上方 */
+.ddl-label {
+    position: absolute;
+    left: 14px;
+    top: -11px;
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: var(--acid-green);
+    background: var(--bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 6px rgba(193, 255, 0, 0.3);
+    pointer-events: none;
+}
+
+body.dark-mode .ddl-label {
+    color: #c1ff00;
+    background: #1a1a1e;
+    text-shadow: 0 0 8px rgba(193, 255, 0, 0.4);
+}
+
+/* DDL 任务的删除按钮 */
+.ddl-del {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid var(--acid-green);
+    background: var(--bg);
+    color: var(--acid-green);
+    font-size: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.ddl-line-task:hover .ddl-del {
+    opacity: 1;
+}
