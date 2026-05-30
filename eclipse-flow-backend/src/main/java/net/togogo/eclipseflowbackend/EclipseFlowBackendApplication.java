@@ -5,7 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@MapperScan("net.togogo.eclipseflowbackend.mapper")
+@MapperScan({"net.togogo.eclipseflowbackend.mapper", "net.togogo.eclipseflowbackend.auth"})
 public class EclipseFlowBackendApplication {
 
     public static void main(String[] args) {
