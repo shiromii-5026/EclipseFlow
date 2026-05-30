@@ -50,11 +50,25 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- MyBatis Plus 依赖 -->
+        <!-- MyBatis Plus -->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
-            <version>3.5.5</version> <!-- 强制指定 3.5.5，这个版本在 Boot 3.2 下最稳 -->
+            <version>3.5.5</version>
+        </dependency>
+
+        <!-- Web Push 推送 -->
+        <dependency>
+            <groupId>nl.martijndwars</groupId>
+            <artifactId>web-push</artifactId>
+            <version>5.1.1</version>
+        </dependency>
+
+        <!-- Bouncy Castle (web-push 加密需要) -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.78</version>
         </dependency>
     </dependencies>
 

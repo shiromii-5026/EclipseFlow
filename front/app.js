@@ -1179,8 +1179,32 @@ document.addEventListener('DOMContentLoaded', () => {
     // 通知检查每分钟一次
     setInterval(checkTaskReminders, 60000);
 
-    // 初始化通知权限请求 + 数据加载后跑一次倒计时
+    // 推送订阅：把浏览器生成的订阅对象发给后端保存
+    async function subscribePush() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+        if (sub) return; // 已经订阅过了
+        try {
+            sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                // VAPID 公钥 —— 和 backend 的私钥配对，用于加密推送内容
+                applicationServerKey: 'BEfDYqG4eOMOiAeUNW3wfUzTPzSx1iBLgoODzGuAEoLwpsJh-VkPugQSvEY5Zu4zXZcnCUoWiaZppxWvuJECoU0',
+            });
+            const subJson = sub.toJSON();
+            await fetch('http://localhost:8080/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(subJson),
+            });
+        } catch (e) {
+            // 浏览器不支持推送或用户拒绝了
+        }
+    }
+
+    // 初始化通知权限请求 + 订阅推送 + 数据加载后跑一次倒计时
     requestNotificationPermission();
+    subscribePush();
     setTimeout(() => {
         updateCountdown();
         checkTaskReminders();

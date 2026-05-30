@@ -1,0 +1,22 @@
+{
+  "name": "EclipseFlow",
+  "short_name": "EclipseFlow",
+  "description": "多平台日程助手",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f3efe4",
+  "theme_color": "#b5d528",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
