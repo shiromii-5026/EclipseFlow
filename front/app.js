@@ -1230,6 +1230,89 @@ document.addEventListener('DOMContentLoaded', () => {
     subscribePush();
     setTimeout(() => { updateCountdown(); }, 1000);
 
+    // ===== 好友系统 + 聊天 =====
+    const socialApi = (path, opts = {}) => fetch(`http://localhost:8080/api/social${path}`, { ...opts, headers: { ...authHeaders(), ...(opts.headers || {}) } }).then(r => r.json());
+    let chatFriendId = null;
+
+    function refreshFriends() {
+        socialApi('/friends').then(list => {
+            const el = document.getElementById('friend-list');
+            if (!el) return;
+            if (list.length === 0) { el.innerHTML = '<span class="countdown-empty">暂无好友</span>'; return; }
+            el.innerHTML = list.map(f => `
+                <div class="countdown-item" style="cursor:pointer;">
+                    <span class="countdown-item-name">${f.username} ${f.calendarPublic ? '(公开)' : ''}</span>
+                    <button class="chat-btn" data-id="${f.id}">聊天</button>
+                    <button class="cal-btn" data-id="${f.id}">日历</button>
+                </div>
+            `).join('');
+            // 绑定聊天按钮
+            el.querySelectorAll('.chat-btn').forEach(b => b.onclick = (e) => { e.stopPropagation(); openChat(b.dataset.id, list.find(f => f.id == b.dataset.id)?.username); });
+            // 绑定日历查看按钮
+            el.querySelectorAll('.cal-btn').forEach(b => b.onclick = (e) => { e.stopPropagation(); viewFriendCalendar(b.dataset.id); });
+        });
+        // 好友请求
+        socialApi('/requests').then(list => {
+            const el = document.getElementById('friend-requests');
+            if (!el || list.length === 0) { if (el) el.innerHTML = ''; return; }
+            el.innerHTML = '<div style="font-size:0.68rem;opacity:0.5;margin-top:4px;">好友申请</div>' + list.map(r => `
+                <div class="countdown-item" style="font-size:0.7rem;">${r.username} <button class="accept-btn" data-id="${r.id}">接受</button></div>
+            `).join('');
+            el.querySelectorAll('.accept-btn').forEach(b => b.onclick = () => { socialApi('/accept', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestId: b.dataset.id }) }).then(refreshFriends); });
+        });
+    }
+
+    document.getElementById('friend-search-btn')?.addEventListener('click', () => {
+        const q = document.getElementById('friend-search-input').value.trim();
+        if (!q) return;
+        socialApi('/search?q=' + q).then(users => {
+            if (users.length === 0) { alert('未找到用户'); return; }
+            const u = users[0];
+            socialApi('/add-friend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ friendId: u.id }) }).then(r => alert(r.status === 'pending' ? '已发送申请' : '已是好友'));
+        });
+    });
+
+    function openChat(friendId, name) {
+        chatFriendId = friendId;
+        document.getElementById('chat-friend-name').textContent = name || '聊天';
+        document.getElementById('chat-modal').classList.remove('hidden');
+        loadMessages();
+    }
+    document.getElementById('chat-close-btn')?.addEventListener('click', () => { document.getElementById('chat-modal').classList.add('hidden'); chatFriendId = null; });
+    document.getElementById('chat-send-btn')?.addEventListener('click', () => {
+        const input = document.getElementById('chat-input');
+        const content = input.value.trim();
+        if (!content || !chatFriendId) return;
+        socialApi('/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ receiverId: chatFriendId, content }) }).then(() => { input.value = ''; loadMessages(); });
+    });
+    function loadMessages() {
+        if (!chatFriendId) return;
+        socialApi('/messages/' + chatFriendId).then(msgs => {
+            const el = document.getElementById('chat-messages');
+            el.innerHTML = msgs.map(m => `<div class="chat-msg ${m.mine ? 'mine' : 'theirs'}">${m.content}</div>`).join('');
+            el.scrollTop = el.scrollHeight;
+        });
+    }
+    setInterval(() => { if (chatFriendId) loadMessages(); refreshFriends(); }, 5000);
+    refreshFriends();
+
+    function viewFriendCalendar(friendId) {
+        fetch(`http://localhost:8080/api/social/friend-calendar/${friendId}`, { headers: authHeaders() })
+            .then(r => r.json()).then(tasks => {
+                if (!tasks || tasks.length === 0) { alert('好友未公开日历或无任务'); return; }
+                const dateKey = tasks[0]?.taskDate || getCSTDateStr(new Date());
+                state.storage[dateKey] = tasks.map(bt => ({
+                    id: bt.id, name: bt.taskName, taskName: bt.taskName,
+                    time: bt.startTime, startTime: bt.startTime,
+                    duration: bt.duration != null ? bt.duration : 1,
+                    color: bt.color, notes: bt.notes || '', deadline: bt.deadline || null,
+                    taskType: bt.taskType || (bt.duration === 0 ? 'DDL' : 'BLOCK')
+                }));
+                ui.renderAll();
+                ui.showToast('已切换到好友日历');
+            });
+    }
+
     function scrollToCurrentTime() {
         if (!state.isViewingCurrentWeek) return;
         const container = document.getElementById('weekly-scroll-container');

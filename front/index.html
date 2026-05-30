@@ -40,6 +40,22 @@
             <button id="back-to-today-btn" class="today-link">回到当前日期</button>
         </div>
 
+        <!-- 好友系统 -->
+        <div id="friends-panel" class="countdown-panel">
+            <div class="countdown-header">
+                <span class="countdown-icon material-symbols-outlined">group</span>
+                <span class="countdown-title">好友</span>
+            </div>
+            <div style="display:flex;gap:4px;margin-bottom:8px;">
+                <input id="friend-search-input" class="quick-input" placeholder="搜索用户" style="flex:1;height:32px;font-size:0.72rem;padding:0 8px;border-radius:8px;">
+                <button id="friend-search-btn" style="height:32px;padding:0 8px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-weight:700;font-size:0.7rem;cursor:pointer;">添加</button>
+            </div>
+            <div id="friend-list" class="countdown-list">
+                <span class="countdown-empty">暂无好友</span>
+            </div>
+            <div id="friend-requests" class="countdown-list" style="margin-top:4px;"></div>
+        </div>
+
         <!-- 实时倒计时 -->
         <div id="countdown-panel" class="countdown-panel">
             <div class="countdown-header">
@@ -150,7 +166,20 @@
             </div>
         </section>
     </main>
-    
+
+    <!-- 聊天弹窗 -->
+    <div id="chat-modal" class="chat-modal hidden">
+        <div class="chat-header">
+            <span id="chat-friend-name">聊天</span>
+            <button id="chat-close-btn" class="quick-close-btn">✕</button>
+        </div>
+        <div id="chat-messages" class="chat-messages"></div>
+        <div class="chat-input-row">
+            <input id="chat-input" placeholder="输入消息...">
+            <button id="chat-send-btn">发送</button>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
     <script src="app.js"></script>
     <!-- 任务右键菜单 -->
