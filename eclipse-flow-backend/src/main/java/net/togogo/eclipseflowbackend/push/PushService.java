@@ -4,9 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import net.togogo.eclipseflowbackend.entity.Task;
 import net.togogo.eclipseflowbackend.mapper.TaskMapper;
 import nl.martijndwars.webpush.Notification;
-import nl.martijndwars.webpush.PushService;
 import nl.martijndwars.webpush.Subscription;
-import nl.martijndwars.webpush.Utils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -94,11 +92,11 @@ public class PushService {
         for (Subscription sub : subscriptions) {
             try {
                 Notification notification = new Notification(sub, payload);
-                PushService pushService = new PushService()
+                nl.martijndwars.webpush.PushService sender = new nl.martijndwars.webpush.PushService()
                     .setPublicKey(VAPID_PUBLIC_KEY)
                     .setPrivateKey(VAPID_PRIVATE_KEY)
                     .setSubject("mailto:eclipseflow@example.com");
-                pushService.send(notification);
+                sender.send(notification);
             } catch (Exception e) {
                 // 订阅失效（浏览器关闭/换设备），标记删除
                 failed.add(sub);
