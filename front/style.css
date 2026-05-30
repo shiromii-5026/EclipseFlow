@@ -42,21 +42,21 @@ body {
 
 :root {
 
-    --bg: #f3efe4;
+    --bg: #eef5e0;
 
-    --black: #2c2416;
-    --white: #faf8f0;
+    --black: #1a1a1a;
+    --white: #f8faf5;
 
-    --accent: #7ab648;
-    --accent-glow-1: rgba(122, 182, 72, 0.12);
-    --accent-glow-2: rgba(122, 182, 72, 0.2);
-    --accent-glow-3: rgba(122, 182, 72, 0.3);
-    --accent-glow-4: rgba(122, 182, 72, 0.4);
-    --accent-glow-5: rgba(122, 182, 72, 0.5);
-    --accent-glow-6: rgba(122, 182, 72, 0.6);
-    --accent-bright: #8cc63f;
-    --accent-bg: rgba(122, 182, 72, 0.06);
-    --accent-bg-hover: rgba(122, 182, 72, 0.04);
+    --accent: #6bc026;
+    --accent-glow-1: rgba(107, 192, 38, 0.12);
+    --accent-glow-2: rgba(107, 192, 38, 0.22);
+    --accent-glow-3: rgba(107, 192, 38, 0.32);
+    --accent-glow-4: rgba(107, 192, 38, 0.45);
+    --accent-glow-5: rgba(107, 192, 38, 0.55);
+    --accent-glow-6: rgba(107, 192, 38, 0.65);
+    --accent-bright: #7ed42a;
+    --accent-bg: rgba(107, 192, 38, 0.06);
+    --accent-bg-hover: rgba(107, 192, 38, 0.04);
 
     --today-highlight: rgba(61, 122, 79, 0.1);
 
@@ -102,16 +102,16 @@ body.dark-mode {
 
     --white: #0d1125;
 
-    --accent: #d4a853;
-    --accent-glow-1: rgba(212, 168, 83, 0.12);
-    --accent-glow-2: rgba(212, 168, 83, 0.2);
-    --accent-glow-3: rgba(212, 168, 83, 0.3);
-    --accent-glow-4: rgba(212, 168, 83, 0.4);
-    --accent-glow-5: rgba(212, 168, 83, 0.5);
-    --accent-glow-6: rgba(212, 168, 83, 0.6);
-    --accent-bright: #e0b860;
-    --accent-bg: rgba(212, 168, 83, 0.06);
-    --accent-bg-hover: rgba(212, 168, 83, 0.08);
+    --accent: #e8c547;
+    --accent-glow-1: rgba(232, 197, 71, 0.12);
+    --accent-glow-2: rgba(232, 197, 71, 0.22);
+    --accent-glow-3: rgba(232, 197, 71, 0.32);
+    --accent-glow-4: rgba(232, 197, 71, 0.45);
+    --accent-glow-5: rgba(232, 197, 71, 0.55);
+    --accent-glow-6: rgba(232, 197, 71, 0.65);
+    --accent-bright: #f0d060;
+    --accent-bg: rgba(232, 197, 71, 0.06);
+    --accent-bg-hover: rgba(232, 197, 71, 0.08);
 
     --today-highlight:
         rgba(212, 168, 83, 0.08);

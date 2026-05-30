@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     await this.fetchTasks();
                 } else {
-                    alert("Server delete failed");
+                    alert("服务器删除失败");
                 }
             } catch (error) {
                 // 网络挂了也没办法，静默处理
@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.style.top = `${startDecimal * CONFIG.HOUR_HEIGHT + CONFIG.HEADER_HEIGHT}px`;
 
                     if (isDDL) {
-                        const ddlColor = t.color || '#7ab648';
+                        const ddlColor = t.color || '#6bc026';
                         item.style.setProperty('--ddl-color', ddlColor.substring(0, 7));
                         item.style.height = '4px';
                         item.style.minHeight = '4px';
@@ -335,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
             grid.addEventListener('click', (e) => {
                 if (e.target.classList.contains('del-btn-mini') || e.target.classList.contains('ddl-del')) {
                     const taskId = e.target.getAttribute('data-id');
-                    if (taskId && confirm("Delete this task?")) {
+                    if (taskId && confirm("确定删除这个任务吗？")) {
                         api.deleteTask(taskId);
                     }
                 }
@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     duration = (endMinutes - startMinutes) / 60;
 
                     if (duration <= 0) {
-                        alert("Deadline must be later than start time");
+                        alert("截止时间必须晚于开始时间");
                         return;
                     }
                     deadlineTime = `${deadlineHour}:${deadlineMin}:00`;
@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (!name || !date) {
-                    alert("Please fill in task name and date");
+                    alert("请填写任务名称和日期");
                     return;
                 }
 
@@ -710,13 +710,13 @@ document.addEventListener('DOMContentLoaded', () => {
             <div id="quick-edit-modal" class="quick-edit-overlay">
                 <div class="quick-edit-panel">
                     <div class="quick-edit-header">
-                        <span class="quick-edit-title">// QUICK EDIT</span>
+                        <span class="quick-edit-title">快捷编辑</span>
                         <button id="cancel-edit-btn" class="quick-close-btn">✕</button>
                     </div>
                     <div class="quick-edit-body">
-                        <label class="quick-label">Task Name</label>
+                        <label class="quick-label">任务名</label>
                         <input type="text" id="edit-task-name" class="quick-input" value="${task.name}">
-                        <label class="quick-label">Color</label>
+                        <label class="quick-label">颜色</label>
                         <div class="quick-color-row">
                             <button class="quick-color-option" data-color="#7ab648aa" style="background:#7ab648aa"></button>
                             <button class="quick-color-option" data-color="#d4a853aa" style="background:#d4a853aa"></button>
@@ -724,11 +724,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             <button class="quick-color-option" data-color="#c97d8b" style="background:#c97d8b"></button>
                             <button class="quick-color-option" data-color="#c8c0b0aa" style="background:#c8c0b0aa"></button>
                         </div>
-                        <label class="quick-label">Notes</label>
+                        <label class="quick-label">备注</label>
                         <textarea id="edit-task-notes" class="quick-textarea" rows="4">${task.notes || ''}</textarea>
                     </div>
                     <div class="quick-edit-footer">
-                        <button id="save-edit-btn" class="quick-save-btn">Save</button>
+                        <button id="save-edit-btn" class="quick-save-btn">保存</button>
                     </div>
                 </div>
             </div>
@@ -758,7 +758,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const newNotes = document.getElementById('edit-task-notes').value.trim();
 
             if (!newName) {
-                alert('Task name cannot be empty');
+                alert('任务名称不能为空');
                 return;
             }
 
