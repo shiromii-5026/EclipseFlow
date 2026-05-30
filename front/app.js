@@ -1112,9 +1112,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const upcoming = [];
 
         tasks.forEach(t => {
-            if (!t.time || t.taskType === 'DDL') return;
+            if (!t.time) return;
             const [h, m] = t.time.split(':').map(Number);
             const startMin = h * 60 + m;
+            const isDDL = t.taskType === 'DDL' || t.duration === 0;
+
+            if (isDDL) {
+                // DDL 任务只显示在即将开始，不显示在进行中
+                if (startMin > nowMin && startMin - nowMin <= 60) {
+                    upcoming.push(t);
+                }
+                return;
+            }
+
             const duration = t.duration || 1;
             const endMin = startMin + duration * 60;
 
@@ -1138,8 +1148,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const [h, m] = t.time.split(':').map(Number);
             const startMin = h * 60 + m;
             const color = t.color || '#9fc518';
+            const isDDL = t.taskType === 'DDL' || t.duration === 0;
 
-            if (showRemaining) {
+            if (showRemaining && !isDDL) {
                 const duration = t.duration || 1;
                 const endMin = startMin + duration * 60;
                 const remaining = endMin - nowMin;
