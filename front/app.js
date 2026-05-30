@@ -272,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.style.top = `${startDecimal * CONFIG.HOUR_HEIGHT + CONFIG.HEADER_HEIGHT}px`;
 
                     if (isDDL) {
-                        const ddlColor = t.color || '#7ab648';
+                        const ddlColor = t.color || '#9fc518';
                         item.style.setProperty('--ddl-color', ddlColor.substring(0, 7));
                         item.style.height = '4px';
                         item.style.minHeight = '4px';
@@ -568,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!modal) return;
 
             const colors = [
-                { val: '#6bc026aa', name: '翠绿' },
+                { val: '#9fc518aa', name: '翠绿' },
                 { val: '#f08830aa', name: '鲜橙' },
                 { val: '#4da6d9', name: '天蓝' },
                 { val: '#e8656e', name: '赤红' },
@@ -576,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ];
 
             const colorOpts = colors.map(c =>
-                `<option value="${c.val}" ${(t.color || '#6bc026aa') === c.val ? 'selected' : ''}>${c.name}</option>`
+                `<option value="${c.val}" ${(t.color || '#9fc518aa') === c.val ? 'selected' : ''}>${c.name}</option>`
             ).join('');
 
             modal.querySelector('.batch-confirm-body').innerHTML = `
@@ -631,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 taskData.startTime += ':00';
                 const colorSel = document.getElementById('batch-color');
-                taskData.color = colorSel ? colorSel.value : '#6bc026aa';
+                taskData.color = colorSel ? colorSel.value : '#9fc518aa';
 
                 await api.saveTask(taskData);
                 currentIndex++;
@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         deadline: deadline,
                         taskType: taskType,
                         notes: t.notes || '',
-                        color: t.color || '#6bc026aa',
+                        color: t.color || '#9fc518aa',
                     });
                 }
                 document.getElementById('batch-confirm-modal').remove();
@@ -718,7 +718,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <input type="text" id="edit-task-name" class="quick-input" value="${task.name}">
                         <label class="quick-label">颜色</label>
                         <div class="quick-color-row">
-                            <button class="quick-color-option" data-color="#6bc026aa" style="background:#6bc026aa"></button>
+                            <button class="quick-color-option" data-color="#9fc518aa" style="background:#9fc518aa"></button>
                             <button class="quick-color-option" data-color="#f08830aa" style="background:#f08830aa"></button>
                             <button class="quick-color-option" data-color="#4da6d9" style="background:#4da6d9"></button>
                             <button class="quick-color-option" data-color="#e8656e" style="background:#e8656e"></button>
@@ -735,7 +735,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-        let selectedColor = task.color || '#6bc026aa';
+        let selectedColor = task.color || '#9fc518aa';
 
         // 颜色小圆点点击切换，高亮当前选中的
         document.querySelectorAll('.quick-color-option').forEach(btn => {
@@ -1127,7 +1127,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const renderItem = (t, showRemaining) => {
             const [h, m] = t.time.split(':').map(Number);
             const startMin = h * 60 + m;
-            const color = t.color || '#7ab648';
+            const color = t.color || '#9fc518';
 
             if (showRemaining) {
                 const duration = t.duration || 1;
