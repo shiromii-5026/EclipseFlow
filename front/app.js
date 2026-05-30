@@ -1187,19 +1187,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 倒计时每秒刷新
     setInterval(updateCountdown, 1000);
-    // 通知检查每分钟一次
-    setInterval(checkTaskReminders, 60000);
+    // 任务提醒每 30 秒检查一次，确保不遗漏 5 分钟窗口
+    checkTaskReminders();
+    setInterval(checkTaskReminders, 30000);
 
     // 推送订阅：把浏览器生成的订阅对象发给后端保存
     async function subscribePush() {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
         const reg = await navigator.serviceWorker.ready;
         let sub = await reg.pushManager.getSubscription();
-        if (sub) return; // 已经订阅过了
+        if (sub) return;
         try {
             sub = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
-                // VAPID 公钥 —— 和 backend 的私钥配对，用于加密推送内容
                 applicationServerKey: 'BEfDYqG4eOMOiAeUNW3wfUzTPzSx1iBLgoODzGuAEoLwpsJh-VkPugQSvEY5Zu4zXZcnCUoWiaZppxWvuJECoU0',
             });
             const subJson = sub.toJSON();
@@ -1209,17 +1209,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(subJson),
             });
         } catch (e) {
-            // 浏览器不支持推送或用户拒绝了
+            // 浏览器不支持或用户拒绝
         }
     }
 
-    // 初始化通知权限请求 + 订阅推送 + 数据加载后跑一次倒计时
+    // 权限请求 + 订阅推送 + 启动倒计时
     requestNotificationPermission();
     subscribePush();
-    setTimeout(() => {
-        updateCountdown();
-        checkTaskReminders();
-    }, 2000);
+    setTimeout(() => { updateCountdown(); }, 1000);
 
     function scrollToCurrentTime() {
         if (!state.isViewingCurrentWeek) return;
