@@ -505,12 +505,12 @@ body.dark-mode .countdown-item {
     font-size: 0.85rem;
     font-weight: 900;
     font-variant-numeric: tabular-nums;
-    color: var(--accent);
+    color: var(--black);
     flex-shrink: 0;
 }
 
 .upcoming-time {
-    color: var(--accent);
+    color: var(--black);
 }
 
 .mini-grid-head,
