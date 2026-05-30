@@ -718,11 +718,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <input type="text" id="edit-task-name" class="quick-input" value="${task.name}">
                         <label class="quick-label">颜色</label>
                         <div class="quick-color-row">
-                            <button class="quick-color-option" data-color="#6bc026aa" style="background:#7ab648aa"></button>
-                            <button class="quick-color-option" data-color="#f08830aa" style="background:#d4a853aa"></button>
-                            <button class="quick-color-option" data-color="#4da6d9" style="background:#5b8cbd"></button>
-                            <button class="quick-color-option" data-color="#e8656e" style="background:#c97d8b"></button>
-                            <button class="quick-color-option" data-color="#b8a0d8aa" style="background:#c8c0b0aa"></button>
+                            <button class="quick-color-option" data-color="#6bc026aa" style="background:#6bc026aa"></button>
+                            <button class="quick-color-option" data-color="#f08830aa" style="background:#f08830aa"></button>
+                            <button class="quick-color-option" data-color="#4da6d9" style="background:#4da6d9"></button>
+                            <button class="quick-color-option" data-color="#e8656e" style="background:#e8656e"></button>
+                            <button class="quick-color-option" data-color="#b8a0d8aa" style="background:#b8a0d8aa"></button>
                         </div>
                         <label class="quick-label">备注</label>
                         <textarea id="edit-task-notes" class="quick-textarea" rows="4">${task.notes || ''}</textarea>
