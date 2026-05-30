@@ -22,5 +22,13 @@ Thumbs.db
 # Local config (contains secrets)
 application-local.yml
 
+# Python / OCR service
+__pycache__/
+*.pyc
+.venv/
+venv/
+
 # Misc
 package-lock.json
+ocr-service/ocr.log
+ocr-service/test.png

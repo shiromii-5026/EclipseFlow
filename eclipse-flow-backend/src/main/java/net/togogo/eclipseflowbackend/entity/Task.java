@@ -27,19 +27,19 @@ public class Task {
     @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime startTime;
 
-    // 🌟【修改】：由 Integer 改为 Double，完美支持前端拉伸出来的 0.5h、1.25h 等小时数
+    // Duration in hours, supports fractional values like 0.5h, 1.25h
     private Double duration;
 
     private String color;
 
-    // 🌟【新增】：备注字段，用来存放双击弹窗输入的详细文字
+    // Notes field for detailed text from quick-edit modal
     private String notes;
 
     @TableField("deadline")
     @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime deadline;
 
-    // 🌟【新增】：任务类型 DDL=截止日类型线任务  BLOCK=时间块任务
+    // Task type: DDL (deadline line) or BLOCK (time block)
     @TableField("task_type")
     private String taskType;
 
@@ -105,5 +105,13 @@ public class Task {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getTaskType() {
+        return taskType;
+    }
+
+    public void setTaskType(String taskType) {
+        this.taskType = taskType;
     }
 }

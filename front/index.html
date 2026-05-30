@@ -29,6 +29,17 @@
             <button id="back-to-today-btn" class="today-link">回到当前日期</button>
         </div>
 
+        <!-- 实时倒计时 -->
+        <div id="countdown-panel" class="countdown-panel">
+            <div class="countdown-header">
+                <span class="countdown-icon material-symbols-outlined">timer</span>
+                <span class="countdown-title">进行中的任务</span>
+            </div>
+            <div id="countdown-list" class="countdown-list">
+                <span class="countdown-empty">暂无进行中的任务</span>
+            </div>
+        </div>
+
         <div class="storage-info-block">
             <div class="barcode-mini"></div>
             <p>系统存储已连接 (CST)</p>
@@ -110,6 +121,15 @@
                         立即保存 +
                     </button>
 
+                </div>
+
+                <!-- 图片拖拽上传 + OCR 识别 -->
+                <div id="ocr-drop-zone" class="ocr-drop-zone">
+                    <span class="ocr-drop-icon material-symbols-outlined">imagesmode</span>
+                    <span class="ocr-drop-text">拖拽图片到这里，自动识别文字填表</span>
+                    <span class="ocr-drop-hint">或点击选择文件</span>
+                    <input type="file" id="ocr-file-input" accept="image/*" hidden>
+                    <span id="ocr-status" class="ocr-status"></span>
                 </div>
 
             </div>

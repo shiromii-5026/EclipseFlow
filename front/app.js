@@ -1,22 +1,22 @@
 document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
-    // 1. 全局配置与状态 (State)
+    // 1. 配置和全局状态
     // ==========================================
     const CONFIG = {
         HOUR_HEIGHT: 80,
         HEADER_HEIGHT: 60,
-        API_BASE: 'http://localhost:8080/api/tasks'
+        API_BASE: 'http://localhost:8080/api/tasks',
+        OCR_BASE: 'http://localhost:8000'
     };
 
     const state = {
-        currentFocusDate: new Date(),
-        miniMonthDate: new Date(),
-        storage: {},
-
+        currentFocusDate: new Date(),   // 当前查看的日期
+        miniMonthDate: new Date(),      // 迷你日历显示的月份
+        storage: {},                    // 按日期分组的任务数据
         isViewingCurrentWeek: true
     };
 
-    // 工具函数：格式化日期为 YYYY-MM-DD
+    // 把 Date 转成 YYYY-MM-DD 字符串
     const getCSTDateStr = (date) => {
         const y = date.getFullYear();
         const m = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -25,67 +25,51 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ==========================================
-    // 2. API 数据层 (与后端通信)
+    // 2. 后端接口层，增删改查都走这里
     // ==========================================
     const api = {
-        // 获取任务列表
         async fetchTasks() {
-            console.log("正在拉取数据...");
             try {
                 const response = await fetch(`${CONFIG.API_BASE}/list`);
-                if (!response.ok) throw new Error('网络响应错误');
-                
-                const data = await response.json();
-                console.log("后端原始 JSON 数据:", data);
-                if (data.length > 0) console.table(data); 
+                if (!response.ok) throw new Error('Network error');
 
-                state.storage = {}; 
-                
+                const data = await response.json();
+
+                state.storage = {};
+
                 data.forEach(bt => {
-                    const dateKey = bt.taskDate; 
+                    const dateKey = bt.taskDate;
                     if (!state.storage[dateKey]) state.storage[dateKey] = [];
-                    
+
+                    // 兼容不同后端返回的 id 字段名
                     const realId = bt.id || bt.taskId || bt.tid || bt.pk;
-                    
-                    if (!realId) console.warn("警告：该任务对象中找不到任何 ID 字段", bt);
 
                     state.storage[dateKey].push({
                         id: realId,
                         name: bt.taskName,
                         taskName: bt.taskName,
-
                         time: bt.startTime,
                         startTime: bt.startTime,
-
                         duration: bt.duration != null ? bt.duration : 1,
-
                         color: bt.color,
-
                         notes: bt.notes || "",
-
                         deadline: bt.deadline || null,
-
-                        // 🌟 任务类型：DDL（截止日线任务）或 BLOCK（时间块任务）
                         taskType: bt.taskType || (bt.duration === 0 ? "DDL" : "BLOCK")
                     });
                 });
-                
-                console.log("转换后的 state.storage:", state.storage);
-                ui.renderAll(); // 数据拉取成功后重新驱动视图
+
+                ui.renderAll();
             } catch (error) {
-                console.error('拉取数据失败，展示本地空沙盒:', error);
-                // 即使失败了，我们也保持基本 UI 可用
-                ui.renderAll(); 
+                ui.renderAll();
             }
         },
 
         async saveTask(clientTaskData) {
             try {
+                // 补全秒数，前端只传 HH:MM，后端要 HH:MM:SS
                 if (clientTaskData.startTime && clientTaskData.startTime.length === 5) {
                     clientTaskData.startTime += ":00";
                 }
-
-                // 🌟 确保 deadline 也是 HH:mm:ss 格式
                 if (clientTaskData.deadline && clientTaskData.deadline.length === 5) {
                     clientTaskData.deadline += ":00";
                 }
@@ -103,42 +87,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
-                    console.log("任务保存成功并同步到数据库");
-                    await this.fetchTasks(); 
+                    await this.fetchTasks();
                     return true;
                 } else {
-                    const errorMsg = await response.text();
-                    console.error("后端拒绝了请求:", errorMsg);
                     return false;
                 }
             } catch (error) {
-                console.error("网络请求失败:", error);
                 return false;
             }
         },
 
-        // 删除任务
+        // 删完直接全量刷新，简单粗暴
         async deleteTask(id) {
             try {
                 const response = await fetch(`${CONFIG.API_BASE}/delete/${id}`, { method: 'DELETE' });
                 if (response.ok) {
-                    console.log(`🗑️ 任务 ${id} 已删除`);
-                    await this.fetchTasks(); 
+                    await this.fetchTasks();
                 } else {
-                    alert("服务器删除失败");
+                    alert("Server delete failed");
                 }
             } catch (error) {
-                console.error("❌ 删除请求出错:", error);
+                // 网络挂了也没办法，静默处理
             }
         },
 
-        //更新任务时间
         async updateTaskTime(id, newDate, startTime) {
             try {
-                console.log(`📡 正在向后端发送：id=${id}, date=${newDate}, startTime=${startTime}`);
-                
                 if (!id || id === "null") {
-                    console.error("❌ 阻止请求：任务 ID 未能成功捕获。");
                     return;
                 }
 
@@ -146,21 +121,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        id: id,            // 对应 Java DTO 的 id
-                        date: newDate,      // 对应 Java DTO 的 date
-                        startTime: startTime // 对应 Java DTO 的 startTime
+                        id: id,
+                        date: newDate,
+                        startTime: startTime
                     })
                 });
-                if (!response.ok) throw new Error('后端数据库更新失败');
-                console.log('✅ Java 后端数据库同步成功！');
+                if (!response.ok) throw new Error('Backend update failed');
             } catch (error) {
-                console.error('❌ 同步数据库时发生崩溃:', error);
+                // silently fail
             }
         }
     };
 
     // ==========================================
-    // 3. 视图渲染层 (UI)
+    // 3. 页面渲染，负责画日历、网格、任务卡片
     // ==========================================
     const ui = {
         renderAll() {
@@ -173,33 +147,33 @@ document.addEventListener('DOMContentLoaded', () => {
             const month = state.miniMonthDate.getMonth();
             const label = document.getElementById('mini-month-label');
             if (label) label.textContent = `${year}.${(month + 1).toString().padStart(2, '0')}`;
-            
+
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const container = document.getElementById('mini-days');
             if (!container) return;
-            
+
             container.innerHTML = '';
             for (let i = 0; i < (firstDay === 0 ? 6 : firstDay - 1); i++) {
                 container.appendChild(document.createElement('div'));
             }
-            
+
             const focusStr = getCSTDateStr(state.currentFocusDate);
             for (let d = 1; d <= daysInMonth; d++) {
                 const dateObj = new Date(year, month, d);
                 const dateStr = getCSTDateStr(dateObj);
                 const dayEl = document.createElement('div');
                 dayEl.className = 'mini-day';
-                
+
                 if (dateStr === focusStr) dayEl.classList.add('active');
                 if (state.storage[dateStr]?.length > 0) {
                     dayEl.style.boxShadow = "inset 0 -3px 0 var(--acid-green)";
                 }
                 dayEl.textContent = d;
-                
-                dayEl.addEventListener('click', () => { 
-                    state.currentFocusDate = dateObj; 
-                    this.renderAll(); 
+
+                dayEl.addEventListener('click', () => {
+                    state.currentFocusDate = dateObj;
+                    this.renderAll();
                 });
                 container.appendChild(dayEl);
             }
@@ -208,9 +182,9 @@ document.addEventListener('DOMContentLoaded', () => {
         renderWeeklyGrid() {
             const grid = document.getElementById('weekly-grid');
             if (!grid) return;
-            grid.innerHTML = ''; 
+            grid.innerHTML = '';
 
-            // 1. 绘制左侧时间轴
+            // 左侧 0:00 ~ 23:00 时间轴
             const gutter = document.createElement('div');
             gutter.className = 'time-gutter';
             gutter.innerHTML = `<div class="column-header" style="font-size:0.6rem">CST</div>`;
@@ -222,33 +196,28 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             grid.appendChild(gutter);
 
-            // 2. 计算当前周范围
+            // 根据当前焦点日期算出本周的周一和周日
             const temp = new Date(state.currentFocusDate);
             const dayIdx = temp.getDay();
             const diff = temp.getDate() - (dayIdx === 0 ? 6 : dayIdx - 1);
             const monday = new Date(temp.setDate(diff));
-            const lastDay = new Date(monday); 
+            const lastDay = new Date(monday);
             lastDay.setDate(monday.getDate() + 6);
-            
+
             const formatTitle = (d) => `${d.getMonth() + 1}月${d.getDate()}日`;
             const titleEl = document.getElementById('range-title');
             if (titleEl) titleEl.textContent = `日程安排 // ${formatTitle(monday)} - ${formatTitle(lastDay)}`;
-            // 判断当前显示周是不是本周
+
             const today = new Date();
-
-            const isViewingCurrentWeek =
-                today >= monday &&
-                today <= lastDay;
-
-            // 保存到全局状态
+            const isViewingCurrentWeek = today >= monday && today <= lastDay;
             state.isViewingCurrentWeek = isViewingCurrentWeek;
 
-            // 3. 绘制 7 天的列
+            // Day columns
             const weekNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
             const todayStr = getCSTDateStr(new Date());
 
             for (let i = 0; i < 7; i++) {
-                const cur = new Date(monday); 
+                const cur = new Date(monday);
                 cur.setDate(monday.getDate() + i);
                 const key = getCSTDateStr(cur);
                 const isToday = key === todayStr;
@@ -257,38 +226,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     cur.getFullYear() === now.getFullYear() &&
                     cur.getMonth() === now.getMonth() &&
                     cur.getDate() === now.getDate();
-                
+
                 const col = document.createElement('div');
                 col.className = `day-column ${isToday ? 'today' : ''}`;
                 col.dataset.date = key;
                 col.innerHTML = `<div class="column-header">${weekNames[i]} <span>${cur.getMonth()+1}/${cur.getDate()}</span></div>`;
-                // 当前时间线
+
+                // 今天的话画一条当前时间红线
                 if (isCurrentDay) {
                     const currentHour = now.getHours();
                     const currentMin = now.getMinutes();
-
-                    const currentTop =
-                        CONFIG.HEADER_HEIGHT +
-                        ((currentHour + currentMin / 60) * CONFIG.HOUR_HEIGHT);
-
+                    const currentTop = CONFIG.HEADER_HEIGHT + ((currentHour + currentMin / 60) * CONFIG.HOUR_HEIGHT);
                     const line = document.createElement('div');
-
                     line.className = 'current-time-line';
-
                     line.style.top = `${currentTop}px`;
-
                     col.appendChild(line);
                 }
-                
+
                 const tasks = state.storage[key] || [];
                 tasks.forEach(t => {
-                    // 🔴 核心修复：防御性木桶。确保时间存在且为字符串，防止脏数据引发 split 异常导致页面崩溃
+                    // 防御：时间数据不对就跳过，防止整个页面崩掉
                     if (!t.time || typeof t.time !== 'string') {
-                        console.warn("发现缺失时间数据的任务，已自动跳过防止崩溃:", t);
                         return;
                     }
 
-                    // 计算任务位置
                     const [h, m] = t.time.split(':').map(Number);
                     const startDecimal = h + m / 60;
 
@@ -296,35 +257,38 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.className = 'event-item';
                     item.setAttribute('data-task-id', t.id);
 
-                    // 🌟 DDL 线任务判定：taskType 为 "DDL" 或 duration 为 0
                     const isDDL = t.taskType === "DDL" || t.duration === 0;
                     if (isDDL) {
                         item.classList.add('ddl-line-task');
                     }
 
                     if (t.color) {
-                        item.style.backgroundColor = t.color || 'var(--white)';
-                        item.style.border = (t.color.toLowerCase() === '#ffffff' || t.color.toLowerCase() === '#ffffffaa') ? "1px solid var(--black)" : "none";
-                    } else if (isToday) {
+                        item.style.setProperty('--task-color', t.color);
+                    }
+                    if (!t.color && isToday) {
                         item.classList.add('important');
                     }
 
                     item.style.top = `${startDecimal * CONFIG.HOUR_HEIGHT + CONFIG.HEADER_HEIGHT}px`;
 
                     if (isDDL) {
-                        // 🌟 DDL 线任务：固定 2px 高度 + 左侧小标签
-                        item.style.height = '2px';
-                        item.style.minHeight = '2px';
+                        const ddlColor = t.color || '#c1ff00';
+                        item.style.setProperty('--ddl-color', ddlColor.substring(0, 7));
+                        item.style.height = '4px';
+                        item.style.minHeight = '4px';
                         item.style.padding = '0';
                         item.style.borderRadius = '0';
                         item.style.border = 'none';
-                        // 使用任务颜色作为线条颜色
-                        if (t.color) {
-                            item.style.backgroundColor = t.color;
-                        }
+                        item.style.backgroundColor = ddlColor;
+                        const glowColor = ddlColor.length >= 7
+                            ? ddlColor.substring(0, 7) + '66'
+                            : ddlColor;
+                        item.style.boxShadow = `0 0 6px ${glowColor}`;
                         item.innerHTML = `
-                            <div class="ddl-line-marker"></div>
-                            <span class="ddl-label">${t.name}</span>
+                            <div class="ddl-label">
+                                <span class="event-time-tag">${t.time.substring(0, 5)}</span>
+                                <span class="event-name-text">${t.name}</span>
+                            </div>
                             <button class="del-btn-mini ddl-del" data-id="${t.id}">×</button>
                         `;
                     } else {
@@ -333,11 +297,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         item.innerHTML = `
                             <div class="resize-handle top">▴</div>
-
                             <div class="event-time-tag">${t.time.substring(0, 5)}</div>
                             <div class="event-name-text">${t.name}</div>
                             <button class="del-btn-mini" data-id="${t.id}">×</button>
-
                             <div class="resize-handle bottom">▾</div>
                         `;
                     }
@@ -362,49 +324,38 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ==========================================
-    // 4. 事件监听注册层 (Controller)
+    // 4. 事件绑定：按钮点击、双击编辑、时间下拉框填充
     // ==========================================
     function bindEvents() {
         const grid = document.getElementById('weekly-grid');
         if (grid) {
-            
-            // 1️⃣ 【你原有的逻辑】：单击删除按钮
+            // 点叉号删除任务
             grid.addEventListener('click', (e) => {
                 if (e.target.classList.contains('del-btn-mini') || e.target.classList.contains('ddl-del')) {
                     const taskId = e.target.getAttribute('data-id');
-                    if (taskId && confirm("确定要从数据库中删除这个任务吗？")) {
+                    if (taskId && confirm("Delete this task?")) {
                         api.deleteTask(taskId);
                     }
                 }
             });
 
-            // 2️⃣ 🌟【新加入的逻辑】：双击卡片快速编辑任务名与备注
+            // 双击弹出快捷编辑框
             grid.addEventListener('dblclick', (e) => {
-                // 向上寻找最近的卡片节点（确保双击卡片内任何文本、空白处都能触发）
                 const item = e.target.closest('.event-item');
-                
-                // 🌟 核心防错：如果双击的是删除按钮，则直接拦截，不触发编辑弹窗
                 if (e.target.classList.contains('del-btn-mini')) return;
 
                 if (item) {
-                    // 从卡片标签上抓取绑定的任务 ID
                     const taskId = item.getAttribute('data-task-id');
-                    // 从它所属的单日列容器上抓取日期
                     const dateStr = item.closest('.day-column').dataset.date;
-                    
-                    console.log(`🔍 触发双击编辑 -> 任务ID: ${taskId}, 日期: ${dateStr}`);
 
-                    // 去内存状态机里捞出这条任务的原始对象数据
                     if (state.storage[dateStr]) {
                         const taskData = state.storage[dateStr].find(t => String(t.id) === String(taskId));
                         if (taskData) {
-                            // 呼出我们上一轮写的玻璃拟态快捷编辑弹窗
                             openQuickEditModal(taskData, dateStr);
                         }
                     }
                 }
             });
-            
         }
 
         const themeBtn = document.getElementById('theme-btn');
@@ -417,56 +368,40 @@ document.addEventListener('DOMContentLoaded', () => {
         const saveBtn = document.getElementById('save-task-btn');
         if (saveBtn) {
             saveBtn.addEventListener('click', async () => {
-            const name = document.getElementById('task-name-input').value;
-            const date = document.getElementById('task-date-input').value;
+                const name = document.getElementById('task-name-input').value;
+                const date = document.getElementById('task-date-input').value;
 
-            const hour = document.getElementById('task-hour-select').value;
-            const minute = document.getElementById('task-min-select').value;
-            const time = `${hour}:${minute}`;
+                const hour = document.getElementById('task-hour-select').value;
+                const minute = document.getElementById('task-min-select').value;
+                const time = `${hour}:${minute}`;
 
-            // 🌟 截止时间选择器（重命名自 end-*）
-            const deadlineHour =
-                document.getElementById('task-deadline-hour-select').value;
+                const deadlineHour = document.getElementById('task-deadline-hour-select').value;
+                const deadlineMin = document.getElementById('task-deadline-min-select').value;
 
-            const deadlineMin =
-                document.getElementById('task-deadline-min-select').value;
+                let duration = null;
+                let deadlineTime = null;
+                let taskType = null;
 
-            // 🌟 核心逻辑：判断任务类型
-            // 有截止时间 → BLOCK 块任务；无截止时间 → DDL 线任务
-            let duration = null;
-            let deadlineTime = null;
-            let taskType = null;
+                // 判断任务类型：填了截止时间就是 BLOCK，没填就是 DDL
+                if (deadlineHour !== "" && deadlineMin !== "") {
+                    taskType = "BLOCK";
+                    const startMinutes = parseInt(hour) * 60 + parseInt(minute);
+                    const endMinutes = parseInt(deadlineHour) * 60 + parseInt(deadlineMin);
+                    duration = (endMinutes - startMinutes) / 60;
 
-            if (deadlineHour !== "" && deadlineMin !== "") {
-                // ✅ 有截止时间 → BLOCK（任务块）
-                taskType = "BLOCK";
-
-                const startMinutes =
-                    parseInt(hour) * 60 + parseInt(minute);
-
-                const endMinutes =
-                    parseInt(deadlineHour) * 60 + parseInt(deadlineMin);
-
-                duration =
-                    (endMinutes - startMinutes) / 60;
-
-                if (duration <= 0) {
-                    alert("截止时间必须晚于开始时间");
-                    return;
+                    if (duration <= 0) {
+                        alert("Deadline must be later than start time");
+                        return;
+                    }
+                    deadlineTime = `${deadlineHour}:${deadlineMin}:00`;
+                } else {
+                    taskType = "DDL";
+                    duration = 0;
+                    deadlineTime = `${hour}:${minute}:00`;
                 }
 
-                // 截止时间 = 用户选择的结束时间
-                deadlineTime = `${deadlineHour}:${deadlineMin}:00`;
-            } else {
-                // ✅ 无截止时间 → DDL（截止日线任务）
-                taskType = "DDL";
-                duration = 0;
-                // DDL 任务的 deadline = 开始时间（即这条线的锚点时间）
-                deadlineTime = `${hour}:${minute}:00`;
-            }
-
                 if (!name || !date) {
-                    alert("请填写任务名称和日期！");
+                    alert("Please fill in task name and date");
                     return;
                 }
 
@@ -515,25 +450,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const hourSel = document.getElementById('task-hour-select');
         const minSel = document.getElementById('task-min-select');
-
-        const deadlineHourSel =
-            document.getElementById('task-deadline-hour-select');
-        const deadlineMinSel =
-            document.getElementById('task-deadline-min-select');
-
+        const deadlineHourSel = document.getElementById('task-deadline-hour-select');
+        const deadlineMinSel = document.getElementById('task-deadline-min-select');
 
         if (hourSel && minSel) {
             hourSel.innerHTML = '';
             minSel.innerHTML = '';
 
-            // 2. 填充小时 (00-23)
+            // 小时 00-23，分钟每 5 分钟一档（00, 05, 10...）
             for (let h = 0; h < 24; h++) {
                 const hStr = h.toString().padStart(2, '0');
                 hourSel.add(new Option(hStr, hStr));
                 if (deadlineHourSel) deadlineHourSel.add(new Option(hStr, hStr));
             }
 
-            // 3. 填充分钟 (按 5 分钟步长：00, 05, 10...55)
             for (let m = 0; m < 60; m += 5) {
                 const mStr = m.toString().padStart(2, '0');
                 minSel.add(new Option(mStr, mStr));
@@ -542,155 +472,156 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function saveToLocal() {
-        localStorage.setItem('eclipse_tasks', JSON.stringify(state.storage));
-        showSaveFeedback(); 
-    }
+    // 图片拖拽上传 + OCR 识别，结果自动填入任务名
+    function initOcrUpload() {
+        const dropZone = document.getElementById('ocr-drop-zone');
+        const fileInput = document.getElementById('ocr-file-input');
+        const statusEl = document.getElementById('ocr-status');
+        const nameInput = document.getElementById('task-name-input');
 
-    function showSaveFeedback() {
-        let toast = document.querySelector('.save-toast');
-        if (!toast) {
-            toast = document.createElement('div');
-            toast.className = 'save-toast';
-            toast.innerText = 'DATA_SYNCED_OK';
-            document.body.appendChild(toast);
+        if (!dropZone || !fileInput || !statusEl || !nameInput) return;
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                uploadAndRecognize(fileInput.files[0]);
+            }
+        });
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                uploadAndRecognize(file);
+            }
+        });
+
+        async function uploadAndRecognize(file) {
+            statusEl.textContent = '识别中...';
+            statusEl.style.display = 'block';
+            statusEl.style.whiteSpace = 'pre-line';
+            statusEl.style.cursor = 'default';
+            dropZone.style.pointerEvents = 'none';
+            dropZone.style.opacity = '0.6';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const resp = await fetch(`${CONFIG.OCR_BASE}/ocr`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!resp.ok) throw new Error('OCR service error');
+
+                const result = await resp.json();
+
+                if (result.text) {
+                    const lines = result.text.split('\n');
+                    // 第一行自动填入任务名
+                    if (lines.length > 0) {
+                        nameInput.value = lines[0];
+                    }
+                    // 全部文本展示在状态栏，点击某一行可切换填入任务名
+                    statusEl.innerHTML = '';
+                    lines.forEach((line, i) => {
+                        const span = document.createElement('span');
+                        span.textContent = line;
+                        span.style.display = 'block';
+                        span.style.cursor = 'pointer';
+                        span.style.padding = '1px 0';
+                        span.title = '点击填入任务名';
+                        span.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            nameInput.value = line;
+                            // 高亮当前选中行
+                            statusEl.querySelectorAll('span').forEach(s => s.style.opacity = '0.5');
+                            span.style.opacity = '1';
+                        });
+                        statusEl.appendChild(span);
+                    });
+                    statusEl.style.color = 'var(--black)';
+                } else {
+                    statusEl.textContent = '未识别到文字';
+                }
+            } catch (err) {
+                statusEl.textContent = 'OCR 服务未启动';
+            } finally {
+                dropZone.style.pointerEvents = 'auto';
+                dropZone.style.opacity = '1';
+                // 点其他地方恢复为空
+                const hide = () => {
+                    statusEl.textContent = '';
+                    statusEl.style.display = '';
+                    statusEl.style.whiteSpace = '';
+                    statusEl.style.color = '';
+                    document.removeEventListener('click', hide);
+                };
+                setTimeout(() => document.addEventListener('click', hide), 100);
+            }
         }
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2000);
     }
 
-    //双击后进行一个弹窗
+    // 双击任务卡片的弹窗：改名字、颜色、备注
     function openQuickEditModal(task, dateStr) {
-        // 移除已有的
         const existing = document.getElementById('quick-edit-modal');
         if (existing) existing.remove();
 
-        // 创建玻璃拟态遮罩和弹窗
         const modalHtml = `
             <div id="quick-edit-modal" class="quick-edit-overlay">
-
                 <div class="quick-edit-panel">
-
                     <div class="quick-edit-header">
-                        <span class="quick-edit-title">
-                            // QUICK EDIT
-                        </span>
-
-                        <button id="cancel-edit-btn"
-                            class="quick-close-btn">
-                            ✕
-                        </button>
+                        <span class="quick-edit-title">// QUICK EDIT</span>
+                        <button id="cancel-edit-btn" class="quick-close-btn">✕</button>
                     </div>
-
                     <div class="quick-edit-body">
-
-                        <label class="quick-label">
-                            任务名
-                        </label>
-
-                        <input
-                            type="text"
-                            id="edit-task-name"
-                            class="quick-input"
-                            value="${task.name}"
-                        >
-
-                        <label class="quick-label">
-                            Notes
-                        </label>
-
-                        <label class="quick-label">
-                            任务颜色
-                        </label>
-
+                        <label class="quick-label">Task Name</label>
+                        <input type="text" id="edit-task-name" class="quick-input" value="${task.name}">
+                        <label class="quick-label">Color</label>
                         <div class="quick-color-row">
-
-                            <button
-                                class="quick-color-option"
-                                data-color="#c1ff00aa"
-                                style="background:#c1ff00aa"
-                            ></button>
-
-                            <button
-                                class="quick-color-option"
-                                data-color="#f498adaa"
-                                style="background:#f498adaa"
-                            ></button>
-
-                            <button
-                                class="quick-color-option"
-                                data-color="#0077ffaa"
-                                style="background:#0077ffaa"
-                            ></button>
-
-                            <button
-                                class="quick-color-option"
-                                data-color="#7a5fffaa"
-                                style="background:#7a5fffaa"
-                            ></button>
-
-                            <button
-                                class="quick-color-option"
-                                data-color="#ffffffaa"
-                                style="background:#ffffffaa"
-                            ></button>
-
+                            <button class="quick-color-option" data-color="#c1ff00aa" style="background:#c1ff00aa"></button>
+                            <button class="quick-color-option" data-color="#f498adaa" style="background:#f498adaa"></button>
+                            <button class="quick-color-option" data-color="#0077ffaa" style="background:#0077ffaa"></button>
+                            <button class="quick-color-option" data-color="#7a5fffaa" style="background:#7a5fffaa"></button>
+                            <button class="quick-color-option" data-color="#ffffffaa" style="background:#ffffffaa"></button>
                         </div>
-
-                        <textarea
-                            id="edit-task-notes"
-                            class="quick-textarea"
-                            rows="4"
-                        >${task.notes || ''}</textarea>
-
+                        <label class="quick-label">Notes</label>
+                        <textarea id="edit-task-notes" class="quick-textarea" rows="4">${task.notes || ''}</textarea>
                     </div>
-
                     <div class="quick-edit-footer">
-
-                        <button
-                            id="save-edit-btn"
-                            class="quick-save-btn"
-                        >
-                            保存修改
-                        </button>
-
+                        <button id="save-edit-btn" class="quick-save-btn">Save</button>
                     </div>
-
                 </div>
-
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-        let selectedColor =
-            task.color || '#c1ff00aa';
+        let selectedColor = task.color || '#c1ff00aa';
 
-        document
-        .querySelectorAll('.quick-color-option')
-        .forEach(btn => {
-
-            if (
-                btn.dataset.color === selectedColor
-            ) {
+        // 颜色小圆点点击切换，高亮当前选中的
+        document.querySelectorAll('.quick-color-option').forEach(btn => {
+            if (btn.dataset.color === selectedColor) {
                 btn.classList.add('active');
             }
-
             btn.onclick = () => {
-
-                document
-                    .querySelectorAll('.quick-color-option')
-                    .forEach(b =>
-                        b.classList.remove('active')
-                    );
-
+                document.querySelectorAll('.quick-color-option').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-
-                selectedColor =
-                    btn.dataset.color;
+                selectedColor = btn.dataset.color;
             };
         });
 
-        // 绑定关闭和保存事件
         document.getElementById('cancel-edit-btn').onclick = () => {
             document.getElementById('quick-edit-modal').remove();
         };
@@ -698,20 +629,17 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('save-edit-btn').onclick = () => {
             const newName = document.getElementById('edit-task-name').value.trim();
             const newNotes = document.getElementById('edit-task-notes').value.trim();
-            
+
             if (!newName) {
-                alert('任务名称不能为空');
+                alert('Task name cannot be empty');
                 return;
             }
 
-            // 同步数据到内存
             task.taskName = newName;
-            task.name = newName; 
+            task.name = newName;
             task.notes = newNotes;
             task.color = selectedColor;
 
-            // 核心：强制兜底获取当前时长，防止刷成 1
-            // 🌟 DDL 任务 duration 可以为 0，用 ?? 替代 ||
             const currentDuration = task.duration != null ? parseFloat(task.duration) : 1.0;
 
             const payload = {
@@ -731,49 +659,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             }).then(() => {
-                ui.renderWeeklyGrid(); 
+                ui.renderWeeklyGrid();
                 document.getElementById('quick-edit-modal').remove();
             });
         };
     }
 
     // ==========================================
-    // 5. 初始化运行区 (Init)
+    // 5. 启动：拉数据、绑事件、开交互
     // ==========================================
     function init() {
-        // ① 优先进行本地首次渲染（打破白屏，进入兜底状态）
-        ui.renderAll(); 
-
-        // ② 异步拉取后端真实数据（悄悄加载，加载完再刷视图）
-        api.fetchTasks(); 
+        // 先画个空壳出来，避免白屏，然后再异步拉数据刷新
+        ui.renderAll();
+        api.fetchTasks();
 
         if (localStorage.getItem('eclipse_theme') === 'dark') {
             document.body.classList.add('dark-mode');
         }
 
         bindEvents();
-
-        // ③ 🔴 激活交互引擎：正式开启拖拽与拉伸支持！
+        initOcrUpload();
         initInteractJS();
-        setTimeout(() => {
-            scrollToCurrentTime();
-        }, 100);
+        // 滚动到当前时间位置（调两次是为了等 DOM 就绪）
+        setTimeout(() => { scrollToCurrentTime(); }, 100);
         scrollToCurrentTime();
     }
 
     // ==========================================
-    // 6. 高级交互层 (Drag & Drop / Resize)
+    // 6. 拖拽和拉伸，底层用 Interact.js
     // ==========================================
     function initInteractJS() {
         if (typeof interact === 'undefined') {
-            console.warn('Interact.js 未加载，拖拽功能不可用');
             return;
         }
 
-        // 计算 5 分钟对应的像素：(5 / 60) * 80px = 6.666px
-        const FIVE_MIN_PX = (5 / 60) * CONFIG.HOUR_HEIGHT;
-
-        // 🌟 BLOCK 任务：可拖拽 + 可拉伸
+        // BLOCK 任务块：可以拖拽，也可以拉底部/顶部手柄调时长
         interact('.event-item:not(.ddl-line-task)')
             .draggable({
                 inertia: false,
@@ -788,13 +708,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 onend: updateTaskAfterDrag
             })
             .resizable({
-                // 绑定到我们刚才写的 class 上
                 edges: { left: false, right: false, bottom: '.resize-handle.bottom', top: '.resize-handle.top' },
                 modifiers: [
                     interact.modifiers.restrictEdges({ outer: 'parent' }),
                     interact.modifiers.snapSize({
-                        // 每 15 分钟吸附一次 (即 HOUR_HEIGHT 的四分之一)
-                        targets: [ interact.createSnapGrid({ x: 1, y: CONFIG.HOUR_HEIGHT / 4 }) ],
+                        targets: [interact.createSnapGrid({ x: 1, y: CONFIG.HOUR_HEIGHT / 4 })],
                         endOnly: true
                     })
                 ],
@@ -804,7 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-        // 🌟 DDL 线任务：只可拖拽（不可拉伸）
+        // DDL 截止线：只拖拽，不拉伸
         interact('.ddl-line-task')
             .draggable({
                 inertia: false,
@@ -820,115 +738,93 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    // --- 拖动时的视觉跟随 (二维追踪) ---
+    // 拖拽中：卡片跟着鼠标走
     function dragMoveListener(event) {
         const target = event.target;
-        
         target.style.transition = 'none';
         target.style.animation = 'none';
 
-        // 3. 🔴 同时追踪 X 轴和 Y 轴的鼠标累加位移
         const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
         const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
 
-        // 4. 🔴 运用二维平移，让卡片跟着鼠标全屏幕乱飞
         target.style.transform = `translate(${x}px, ${y}px)`;
-        
-        // 保存当前的最新坐标
         target.setAttribute('data-x', x);
         target.setAttribute('data-y', y);
-        
-        // 华丽的拖拽视觉反馈
+
         target.style.opacity = '0.75';
         target.style.boxShadow = '0 16px 35px rgba(0,0,0,0.3)';
-        target.style.zIndex = '9999'; 
+        target.style.zIndex = '9999';
     }
 
-    // --- 拖拽结束：核心跨列判定 ---
-    // --- 拖拽结束：核心跨列判定与数据驱动重刷 ---
+    // 拖拽松手：算新位置、跨列移动、同步后端
     function updateTaskAfterDrag(event) {
-        // 1. 确保拿到最外层任务卡片节点
         const target = event.target.closest('.event-item');
         if (!target) return;
-        
-        // 恢复拖拽时改变的临时视觉样式
+
         target.style.opacity = '1';
         target.style.boxShadow = '';
         target.style.zIndex = '';
 
-        // 2. 雷达透视探测：获取鼠标松手那一刻下方的真正单日列容器
+        // 找出鼠标下方是哪个日期列
         target.style.pointerEvents = 'none';
         const dropTarget = document.elementFromPoint(event.clientX, event.clientY);
-        target.style.pointerEvents = 'auto'; 
+        target.style.pointerEvents = 'auto';
 
         const newColumn = dropTarget ? dropTarget.closest('.day-column') : null;
         const currentColumn = target.closest('.day-column');
-        
-        // 确定最终落脚的日期
+
         let dateStr = currentColumn ? currentColumn.dataset.date : null;
         if (newColumn) {
             dateStr = newColumn.dataset.date;
         }
-        
+
         if (!dateStr) {
-            // 如果飘到网格外面去了，强刷视图让它就地复位
             ui.renderWeeklyGrid();
             return;
         }
 
-        const taskId = target.getAttribute('data-task-id'); 
-        
-        // 3. 核心计算：基于最原始未污染的初始 top + 本次累计拖拽位移 dragY 算出绝对高度
+        const taskId = target.getAttribute('data-task-id');
+
         const initialTop = parseFloat(target.style.top) || 0;
         const dragY = parseFloat(target.getAttribute('data-y')) || 0;
         const absoluteY = initialTop + dragY - CONFIG.HEADER_HEIGHT - 5;
-        
-        // 精准将绝对像素值转换为总分钟数
+
+        // 像素转分钟，吸附到 15 分钟刻度
         let totalMinutes = (absoluteY / CONFIG.HOUR_HEIGHT) * 60;
-        // 极客式网格吸附：强制对齐到最近的 15 分钟刻度
         totalMinutes = Math.round(totalMinutes / 15) * 15;
-        
-        // 限制单天边界
         if (totalMinutes < 0) totalMinutes = 0;
         if (totalMinutes > 23.75 * 60) totalMinutes = 23.75 * 60;
-        
-        // 格式化得到干净的开始时间字符串 (HH:mm)
+
         const startHour = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
         const startMin = (totalMinutes % 60).toString().padStart(2, '0');
         const newStartTimeStr = `${startHour}:${startMin}`;
 
-        console.log(`🎯 拖拽数据换算 -> 任务ID: ${taskId}, 新日期: ${dateStr}, 新时间: ${newStartTimeStr}`);
-
-        // 4. 【核心演算法】：维护内存状态机仓库
+        // 从内存里找到并移动这个任务
         let foundTaskObj = null;
-        // 先从内存各处挖出这个任务
         Object.keys(state.storage).forEach(key => {
             const idx = state.storage[key].findIndex(t => String(t.id) === String(taskId));
             if (idx !== -1) {
-                foundTaskObj = state.storage[key].splice(idx, 1)[0]; // 剔除旧位置
+                foundTaskObj = state.storage[key].splice(idx, 1)[0];
             }
         });
 
         if (foundTaskObj) {
-            // 覆写新属性
             foundTaskObj.time = newStartTimeStr;
             foundTaskObj.startTime = newStartTimeStr;
 
-            // 🌟 拖拽 DDL 任务：同步更新 deadline = 新的开始时间
+            // DDL 的 deadline 始终等于开始时间
             if (foundTaskObj.taskType === "DDL") {
                 foundTaskObj.deadline = newStartTimeStr + ":00";
             }
 
-            // 塞入新日期分类中
             if (!state.storage[dateStr]) state.storage[dateStr] = [];
             state.storage[dateStr].push(foundTaskObj);
 
-            // 🌟 核心杀招：数据更新完毕，立刻全量重刷视图！
-            // 原来带有随意 transform 位移的脏 DOM 被瞬间销毁，新卡片从生成时就会规规矩矩地绝对定位对齐！
             ui.renderWeeklyGrid();
 
-            // 5. 组装干净的 payload 同步到 Java 后端
-            const ddlDuration = (foundTaskObj.taskType === "DDL" || foundTaskObj.duration === 0) ? 0 : (foundTaskObj.duration || 1);
+            // DDL 任务强制 duration = 0
+            const ddlDuration = (foundTaskObj.taskType === "DDL" || foundTaskObj.duration === 0)
+                ? 0 : (foundTaskObj.duration || 1);
             const payload = {
                 id: foundTaskObj.id,
                 date: dateStr,
@@ -944,21 +840,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
-            }).then(res => {
-                if (!res.ok) console.error("❌ 后端数据库同步失败");
             });
         }
     }
-    // --- 拉伸进行时的视觉跟随 ---
+
     function resizeMoveListener(event) {
         let target = event.target;
         let x = (parseFloat(target.getAttribute('data-x')) || 0);
         let y = (parseFloat(target.getAttribute('data-y')) || 0);
 
-        // 动态改变高度
         target.style.height = event.rect.height + 'px';
 
-        // 如果是往上拉伸（拉动 top 边缘），需要同时改变 Y 坐标，否则只有底部在动
         if (event.edges.top) {
             y += event.deltaRect.top;
             target.style.transform = `translate(${x}px, ${y}px)`;
@@ -966,24 +858,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 拉伸松手后的数据同步 ---
-    // --- 拉伸松手后的数据同步与全量清爽重刷 ---
+    // 拉伸松手：根据新的像素高度算时长，同步到内存和后端
     function updateTaskAfterResize(event) {
         let target = event.target;
         const taskId = target.getAttribute('data-task-id');
         const dateStr = target.closest('.day-column').dataset.date;
 
-        // 1. 基于结束时拉伸出的纯净像素高度，算出全新时长 (15分钟步长即 0.25)
         const currentHeight = parseFloat(target.style.height);
-        let newDuration = currentHeight / CONFIG.HOUR_HEIGHT; 
-        newDuration = Math.round(newDuration * 4) / 4; 
-        if (newDuration < 0.25) newDuration = 0.25; // 限制最小长度为15分钟
+        let newDuration = currentHeight / CONFIG.HOUR_HEIGHT;
+        // 每 0.25h (15分钟) 一档，最小不低于 15 分钟
+        newDuration = Math.round(newDuration * 4) / 4;
+        if (newDuration < 0.25) newDuration = 0.25;
 
-        // 2. 计算顶端绝对高度（适配往上拉伸边缘的情况）
         const initialTop = parseFloat(target.style.top) || 0;
         const dragY = parseFloat(target.getAttribute('data-y')) || 0;
         const absoluteY = initialTop + dragY - CONFIG.HEADER_HEIGHT - 5;
-        
+
         let totalMinutes = (absoluteY / CONFIG.HOUR_HEIGHT) * 60;
         totalMinutes = Math.round(totalMinutes / 15) * 15;
         if (totalMinutes < 0) totalMinutes = 0;
@@ -992,19 +882,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const startMin = (totalMinutes % 60).toString().padStart(2, '0');
         const newStartTimeStr = `${startHour}:${startMin}`;
 
-        // 3. 更新内存状态机数据仓库
         let taskObj = null;
         if (state.storage[dateStr]) {
             taskObj = state.storage[dateStr].find(t => String(t.id) === String(taskId));
             if (taskObj) {
                 taskObj.time = newStartTimeStr;
                 taskObj.startTime = newStartTimeStr;
-                taskObj.duration = newDuration; // 写入精炼后的新时长
+                taskObj.duration = newDuration;
 
-                // 🌟 拉伸后不再是 DDL 线任务，转为 BLOCK
+                // DDL 被拉高了就自动转成 BLOCK
                 if (taskObj.taskType === "DDL" && newDuration > 0) {
                     taskObj.taskType = "BLOCK";
-                    // 根据新的起始+持续时长反推截止时间
                     const endTotalMin = totalMinutes + (newDuration * 60);
                     const endH = Math.floor(endTotalMin / 60).toString().padStart(2, '0');
                     const endM = Math.round(endTotalMin % 60).toString().padStart(2, '0');
@@ -1013,10 +901,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 🌟 核心杀招：丢弃所有拉伸事件残留在 DOM 上的百分比/高宽杂质，彻底干净地重新从生成层渲染对齐！
         ui.renderWeeklyGrid();
 
-        // 4. 提取其余属性，发送全量数据包持久化入库
         const currentName = taskObj ? (taskObj.taskName || taskObj.name) : target.querySelector('.event-name-text').textContent;
         const currentNotes = taskObj ? taskObj.notes : "";
 
@@ -1035,35 +921,116 @@ document.addEventListener('DOMContentLoaded', () => {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
-        }).then(res => {
-            if (!res.ok) console.error("❌ 后端拉伸数据更新同步失败");
         });
     }
-    
-    // 运行启动
-    init(); 
-    setInterval(() => {
-        ui.renderWeeklyGrid();
-    }, 60000);
+
+    // 请求浏览器通知权限
+    function requestNotificationPermission() {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }
+
+    // 任务提醒：每分钟检查一次，开始前 5 分钟弹通知
+    const firedReminders = {};
+    function checkTaskReminders() {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+        const now = new Date();
+        const todayStr = getCSTDateStr(now);
+        const tasks = state.storage[todayStr] || [];
+
+        tasks.forEach(t => {
+            if (!t.time || t.taskType === 'DDL') return;
+
+            const [h, m] = t.time.split(':').map(Number);
+            const startMin = h * 60 + m;
+            const nowMin = now.getHours() * 60 + now.getMinutes();
+            const diff = startMin - nowMin;
+
+            // 距离开始 4-6 分钟时提醒，用 id+时间 去重防止重复弹
+            const key = `${t.id}-${todayStr}`;
+            if (diff >= 4 && diff <= 6 && !firedReminders[key]) {
+                firedReminders[key] = true;
+                new Notification('EclipseFlow 任务提醒', {
+                    body: `${t.name || t.taskName} 将在 ${diff} 分钟后开始`,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⏰</text></svg>',
+                });
+            }
+        });
+    }
+
+    // 侧边栏倒计时：列出今天进行中的任务，显示剩余时间
+    function updateCountdown() {
+        const listEl = document.getElementById('countdown-list');
+        if (!listEl) return;
+
+        const now = new Date();
+        const todayStr = getCSTDateStr(now);
+        const tasks = state.storage[todayStr] || [];
+        const nowMin = now.getHours() * 60 + now.getMinutes();
+
+        // 筛选进行中的任务：已开始但未结束
+        const active = tasks.filter(t => {
+            if (!t.time || t.taskType === 'DDL') return false;
+            const [h, m] = t.time.split(':').map(Number);
+            const startMin = h * 60 + m;
+            const duration = t.duration || 1;
+            const endMin = startMin + duration * 60;
+            return nowMin >= startMin && nowMin < endMin;
+        });
+
+        if (active.length === 0) {
+            listEl.innerHTML = '<span class="countdown-empty">暂无进行中的任务</span>';
+            return;
+        }
+
+        listEl.innerHTML = active.map(t => {
+            const [h, m] = t.time.split(':').map(Number);
+            const startMin = h * 60 + m;
+            const duration = t.duration || 1;
+            const endMin = startMin + duration * 60;
+            const remaining = endMin - nowMin;
+            const remH = Math.floor(remaining / 60);
+            const remM = Math.floor(remaining % 60);
+            const timeStr = remH > 0 ? `${remH}h ${remM}m` : `${remM}m`;
+
+            return `
+                <div class="countdown-item">
+                    <span class="countdown-item-color" style="background:${t.color || '#c1ff00'}"></span>
+                    <span class="countdown-item-name">${t.name || t.taskName}</span>
+                    <span class="countdown-item-time">${timeStr}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    init();
+    setInterval(() => { ui.renderWeeklyGrid(); }, 60000);
+
+    // 倒计时每秒刷新
+    setInterval(updateCountdown, 1000);
+    // 通知检查每分钟一次
+    setInterval(checkTaskReminders, 60000);
+
+    // 初始化通知权限请求 + 数据加载后跑一次倒计时
+    requestNotificationPermission();
+    setTimeout(() => {
+        updateCountdown();
+        checkTaskReminders();
+    }, 2000);
+
     function scrollToCurrentTime() {
         if (!state.isViewingCurrentWeek) return;
         const container = document.getElementById('weekly-scroll-container');
-
         if (!container) return;
 
         const now = new Date();
-
         const currentHour = now.getHours();
         const currentMin = now.getMinutes();
 
-        // 当前时间对应的绝对像素位置
-        const currentPosition =
-            CONFIG.HEADER_HEIGHT +
-            ((currentHour + currentMin / 60) * CONFIG.HOUR_HEIGHT);
-
-        // 让当前时间位于屏幕中间偏上一点
-        const targetScroll =
-            currentPosition - (container.clientHeight * 0.4);
+        const currentPosition = CONFIG.HEADER_HEIGHT + ((currentHour + currentMin / 60) * CONFIG.HOUR_HEIGHT);
+        const targetScroll = currentPosition - (container.clientHeight * 0.4);
 
         container.scrollTo({
             top: Math.max(targetScroll, 0),

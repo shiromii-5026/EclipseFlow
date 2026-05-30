@@ -4,27 +4,22 @@ import java.time.LocalTime;
 
 public class TaskTimeUpdateDto {
     private Long id;
-    private String date;       // 对应前端传的 date (YYYY-MM-DD)
-    private String startTime;  // 对应前端的 startTime (HH:MM)
-    private String endTime;    // 对应前端的 endTime (HH:MM)
+    private String date;
+    private String startTime;
+    private String endTime;
 
-    // 承接前端拉伸后的最新时长
     private Double duration;
 
-    // 承接双击修改后的新任务名
     private String taskName;
 
-    // 承接双击修改后的新备注内容
+    // 备注允许清空，所以用 null 判断而不是 hasText
     private String notes;
 
-    // 承接截止时间
     @JsonFormat(pattern = "HH:mm:ss")
     private LocalTime deadline;
 
-    // 🌟【新增】：任务类型 DDL / BLOCK
     private String taskType;
 
-    // 承接颜色
     private String color;
 
     public Long getId() {

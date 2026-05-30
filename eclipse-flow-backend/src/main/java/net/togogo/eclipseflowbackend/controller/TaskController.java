@@ -45,15 +45,12 @@ public class TaskController {
     }
 
     /**
-     * 🌟【全面升级】：统一的时间轴与详情属性更新接口
-     * 完美支持：1. 鼠标拖拽位置  2. 鼠标悬停拉伸高度  3. 双击弹窗修改文本与备注
+     * 统一更新入口：拖拽位置、拉伸时长、双击编辑都走这里。
+     * 只传变了的字段，Service 层动态拼 SQL。
      */
     @PutMapping("/update-time")
     public ResponseEntity<?> updateTaskTime(@RequestBody TaskTimeUpdateDto dto) {
         try {
-            System.out.println("📡 收到前端同步请求，任务ID: " + dto.getId());
-
-            // 直接将承载了全套新数据的 dto 喂给 Service 层处理
             boolean success = taskService.updateTaskTime(dto);
 
             if (success) {
