@@ -729,10 +729,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <label class="quick-label">颜色</label>
                         <div class="quick-color-row">
                             <button class="quick-color-option" data-color="#9fc518aa" style="background:#9fc518aa"></button>
-                            <button class="quick-color-option" data-color="#f8b048aa" style="background:#f08830aa"></button>
+                            <button class="quick-color-option" data-color="#f89828aa" style="background:#f08830aa"></button>
                             <button class="quick-color-option" data-color="#5eb8e8" style="background:#4da6d9"></button>
                             <button class="quick-color-option" data-color="#f07880" style="background:#e8656e"></button>
-                            <button class="quick-color-option" data-color="#c8b8e8aa" style="background:#b8a0d8aa"></button>
+                            <button class="quick-color-option" data-color="#b088e0aa" style="background:#b8a0d8aa"></button>
                         </div>
                         <label class="quick-label">备注</label>
                         <textarea id="edit-task-notes" class="quick-textarea" rows="4">${task.notes || ''}</textarea>
