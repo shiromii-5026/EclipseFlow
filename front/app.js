@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (dateStr === focusStr) dayEl.classList.add('active');
                 if (state.storage[dateStr]?.length > 0) {
-                    dayEl.style.boxShadow = "inset 0 -3px 0 var(--acid-green)";
+                    dayEl.classList.add('has-tasks');
                 }
                 dayEl.textContent = d;
 

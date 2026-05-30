@@ -535,6 +535,16 @@ body.dark-mode .countdown-item {
     font-weight: 700;
 }
 
+.mini-day.has-tasks::after {
+    content: "";
+    display: block;
+    width: 12px;
+    height: 2px;
+    margin: 0 auto;
+    background: var(--accent);
+    border-radius: 1px;
+}
+
 .mini-day.active {
 
     background: var(--accent) !important;
