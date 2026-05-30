@@ -100,7 +100,6 @@ Kimi API Key 在 `main.py` 顶部的 `KIMI_KEY` 中配置。
 
 | 用户名 | 密码 |
 |--------|------|
-| shiromii | 123456 |
 | admin | 123456 |
 
 ## API 一览
