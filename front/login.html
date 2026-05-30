@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EclipseFlow - 登录</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@100..900&display=swap">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #f3efe4;
+            background-image: radial-gradient(circle at 25% 25%, #b5d528 0.4px, transparent 0.4px),
+                              radial-gradient(circle at 75% 75%, #b5d528 0.4px, transparent 0.4px),
+                              radial-gradient(rgba(0,0,0,0.1) 0.5px, transparent 0.5px);
+            background-size: 60px 60px, 60px 60px, 24px 24px;
+        }
+        .login-card {
+            background: rgba(250,248,240,0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 48px 40px;
+            width: 380px;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.1);
+            border: 1px solid rgba(0,0,0,0.06);
+            position: relative;
+        }
+        .login-card::before, .login-card::after {
+            content: ""; position: absolute;
+            width: 16px; height: 16px;
+            border-color: #b5d528; border-style: solid;
+            opacity: 0.3; pointer-events: none;
+        }
+        .login-card::before { top: 8px; left: 8px; border-width: 1px 0 0 1px; }
+        .login-card::after { bottom: 8px; right: 8px; border-width: 0 1px 1px 0; }
+        h1 {
+            text-align: center;
+            font-size: 1.6rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            margin-bottom: 32px;
+            color: #2c2416;
+        }
+        h1 span { color: #b5d528; }
+        label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #555;
+            margin-bottom: 6px;
+            margin-top: 16px;
+        }
+        input {
+            width: 100%;
+            height: 48px;
+            padding: 0 16px;
+            border-radius: 14px;
+            border: 1.5px solid rgba(0,0,0,0.12);
+            background: rgba(255,255,255,0.8);
+            font-size: 0.95rem;
+            font-weight: 700;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input:focus {
+            border-color: #b5d528;
+            box-shadow: 0 0 20px rgba(181,213,40,0.2);
+        }
+        button {
+            width: 100%;
+            height: 48px;
+            margin-top: 24px;
+            border: none;
+            border-radius: 14px;
+            background: #b5d528;
+            color: #000;
+            font-size: 1rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            cursor: pointer;
+            box-shadow: 0 0 18px rgba(181,213,40,0.35);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover { transform: scale(1.02); box-shadow: 0 0 28px rgba(181,213,40,0.5); }
+        .toggle { text-align: center; margin-top: 16px; font-size: 0.82rem; opacity: 0.6; cursor: pointer; }
+        .toggle:hover { opacity: 1; }
+        .error { color: #e8656e; font-size: 0.8rem; text-align: center; margin-top: 12px; min-height: 20px; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h1>ECLIPSE<span>FLOW</span></h1>
+        <form id="auth-form">
+            <label for="username">用户名</label>
+            <input type="text" id="username" placeholder="输入用户名" required autocomplete="username">
+            <label for="password">密码</label>
+            <input type="password" id="password" placeholder="输入密码" required autocomplete="current-password">
+            <div class="error" id="error"></div>
+            <button type="submit" id="submit-btn">登 录</button>
+            <div class="toggle" id="toggle-mode">没有账号？点此注册</div>
+        </form>
+    </div>
+    <script>
+        const API = 'http://localhost:8080/api/auth';
+        let mode = 'login';
+
+        document.getElementById('toggle-mode').onclick = () => {
+            mode = mode === 'login' ? 'register' : 'login';
+            document.getElementById('submit-btn').textContent = mode === 'login' ? '登 录' : '注 册';
+            document.getElementById('toggle-mode').textContent = mode === 'login' ? '没有账号？点此注册' : '已有账号？点此登录';
+            document.getElementById('error').textContent = '';
+        };
+
+        document.getElementById('auth-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errorEl = document.getElementById('error');
+            if (!username || !password) { errorEl.textContent = '请填写用户名和密码'; return; }
+
+            try {
+                const resp = await fetch(`${API}/${mode}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    localStorage.setItem('eclipse_token', data.token);
+                    localStorage.setItem('eclipse_username', data.username);
+                    window.location.href = 'index.html';
+                } else {
+                    errorEl.textContent = data.error || '操作失败';
+                }
+            } catch (err) {
+                errorEl.textContent = '服务器连接失败';
+            }
+        };
+    </script>
+</body>
+</html>

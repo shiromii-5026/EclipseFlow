@@ -16,6 +16,9 @@ public class Task {
     @TableId
     private Long id;
 
+    @TableField("user_id")
+    private Long userId;
+
     @TableField("task_name")
     private String taskName;
 

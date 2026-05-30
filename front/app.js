@@ -9,6 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
         OCR_BASE: 'http://localhost:8000'
     };
 
+    // 每次请求带上 JWT token
+    const token = () => localStorage.getItem('eclipse_token') || '';
+    const authHeaders = () => token() ? { 'Authorization': 'Bearer ' + token() } : {};
+
     const state = {
         currentFocusDate: new Date(),   // 当前查看的日期
         miniMonthDate: new Date(),      // 迷你日历显示的月份
@@ -30,8 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const api = {
         async fetchTasks() {
             try {
-                const response = await fetch(`${CONFIG.API_BASE}/list`);
-                if (!response.ok) throw new Error('Network error');
+                const response = await fetch(`${CONFIG.API_BASE}/list`, { headers: authHeaders() });
 
                 const data = await response.json();
 
@@ -82,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const response = await fetch(`${CONFIG.API_BASE}/add`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
@@ -100,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 删完直接全量刷新，简单粗暴
         async deleteTask(id) {
             try {
-                const response = await fetch(`${CONFIG.API_BASE}/delete/${id}`, { method: 'DELETE' });
+                const response = await fetch(`${CONFIG.API_BASE}/delete/${id}`, { method: 'DELETE', headers: authHeaders() });
                 if (response.ok) {
                     await this.fetchTasks();
                 } else {
@@ -119,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const response = await fetch(`${CONFIG.API_BASE}/update-time`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         id: id,
                         date: newDate,
@@ -374,6 +377,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (themeBtn) {
             themeBtn.addEventListener('click', () => {
                 document.body.classList.toggle('dark-mode');
+            });
+        }
+
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                localStorage.removeItem('eclipse_token');
+                localStorage.removeItem('eclipse_username');
+                window.location.href = 'login.html';
             });
         }
 

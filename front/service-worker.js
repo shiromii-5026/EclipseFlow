@@ -6,6 +6,7 @@ const CACHE_NAME = 'eclipseflow-v2';
 const CACHE_URLS = [
     './',
     'index.html',
+    'login.html',
     'style.css',
     'app.js',
     'manifest.json',

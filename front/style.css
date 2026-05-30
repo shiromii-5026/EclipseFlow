@@ -865,7 +865,7 @@ body.dark-mode .header-barcode {
 
     top: 0;
 
-    z-index: 20;
+    z-index: 100;
 
     height: var(--header-height);
 

@@ -8,7 +8,11 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@100..900&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0" />
     <link rel="stylesheet" href="style.css">
     <script>
-    // 注册 Service Worker，PWA 离线缓存 + 推送
+    // 没有 token 就跳登录页
+    if (!localStorage.getItem('eclipse_token')) {
+        window.location.href = 'login.html';
+    }
+    // 注册 Service Worker
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js');
     }
@@ -69,6 +73,7 @@
             <button id="theme-btn" class="theme-btn" title="切换夜间模式">
                 <span class="material-symbols-outlined">contrast</span>
             </button>
+            <button id="logout-btn" class="theme-btn" title="退出登录" style="font-size:0.7rem;font-weight:900;">出</button>
         </div>
 
         <header>
