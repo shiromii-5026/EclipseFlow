@@ -95,25 +95,36 @@ async def parse_tasks(req: ParseRequest):
 OCR 原文：
 {req.text}"""
 
-    resp = requests.post(
-        f"{AI_BASE_URL}/v1/messages",
-        headers={
-            "x-api-key": AI_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "Content-Type": "application/json",
-        },
-        json={
-            "model": AI_MODEL,
-            "max_tokens": 2048,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
-        },
-        timeout=90,
-    )
-
-    if resp.status_code != 200:
-        return {"tasks": [], "error": f"AI API error: {resp.status_code}"}
+    # 网络不稳时重试最多 3 次
+    last_error = None
+    for attempt in range(3):
+        try:
+            resp = requests.post(
+                f"{AI_BASE_URL}/v1/messages",
+                headers={
+                    "x-api-key": AI_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": AI_MODEL,
+                    "max_tokens": 2048,
+                    "messages": [
+                        {"role": "user", "content": prompt}
+                    ],
+                },
+                timeout=90,
+            )
+            if resp.status_code == 200:
+                break
+            last_error = f"AI API error: {resp.status_code}"
+        except Exception as e:
+            last_error = f"AI API error: {str(e)[:100]}"
+            if attempt < 2:
+                import time
+                time.sleep(2)
+    else:
+        return {"tasks": [], "error": last_error or "AI API failed"}
 
     data = resp.json()
     content = data.get("content", [])

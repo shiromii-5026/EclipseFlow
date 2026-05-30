@@ -555,7 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     statusEl.textContent = '未识别到可用的任务';
                 }
             } catch (err) {
-                statusEl.textContent = 'OCR 服务未启动';
+                statusEl.textContent = 'OCR 服务连接失败，请确认 ocr-service 已启动';
             } finally {
                 dropZone.style.pointerEvents = 'auto';
                 dropZone.style.opacity = '1';
