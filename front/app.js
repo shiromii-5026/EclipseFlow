@@ -578,7 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!modal) return;
 
             const colors = [
-                { val: '#9fc518aa', name: '翠绿' },
+                { val: '#b5d528aa', name: '翠绿' },
                 { val: '#f08830aa', name: '鲜橙' },
                 { val: '#4da6d9', name: '天蓝' },
                 { val: '#e8656e', name: '赤红' },
@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ];
 
             const colorOpts = colors.map(c =>
-                `<option value="${c.val}" ${(t.color || '#9fc518aa') === c.val ? 'selected' : ''}>${c.name}</option>`
+                `<option value="${c.val}" ${(t.color || '#b5d528aa') === c.val ? 'selected' : ''}>${c.name}</option>`
             ).join('');
 
             modal.querySelector('.batch-confirm-body').innerHTML = `
@@ -641,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 taskData.startTime += ':00';
                 const colorSel = document.getElementById('batch-color');
-                taskData.color = colorSel ? colorSel.value : '#9fc518aa';
+                taskData.color = colorSel ? colorSel.value : '#b5d528aa';
 
                 await api.saveTask(taskData);
                 currentIndex++;
@@ -676,7 +676,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         deadline: deadline,
                         taskType: taskType,
                         notes: t.notes || '',
-                        color: t.color || '#9fc518aa',
+                        color: t.color || '#b5d528aa',
                     });
                 }
                 document.getElementById('batch-confirm-modal').remove();
@@ -729,10 +729,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         <label class="quick-label">颜色</label>
                         <div class="quick-color-row">
                             <button class="quick-color-option" data-color="#9fc518aa" style="background:#9fc518aa"></button>
-                            <button class="quick-color-option" data-color="#f08830aa" style="background:#f08830aa"></button>
-                            <button class="quick-color-option" data-color="#4da6d9" style="background:#4da6d9"></button>
-                            <button class="quick-color-option" data-color="#e8656e" style="background:#e8656e"></button>
-                            <button class="quick-color-option" data-color="#b8a0d8aa" style="background:#b8a0d8aa"></button>
+                            <button class="quick-color-option" data-color="#f8b048aa" style="background:#f08830aa"></button>
+                            <button class="quick-color-option" data-color="#5eb8e8" style="background:#4da6d9"></button>
+                            <button class="quick-color-option" data-color="#f07880" style="background:#e8656e"></button>
+                            <button class="quick-color-option" data-color="#c8b8e8aa" style="background:#b8a0d8aa"></button>
                         </div>
                         <label class="quick-label">备注</label>
                         <textarea id="edit-task-notes" class="quick-textarea" rows="4">${task.notes || ''}</textarea>
@@ -745,7 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-        let selectedColor = task.color || '#9fc518aa';
+        let selectedColor = task.color || '#b5d528aa';
 
         // 颜色小圆点点击切换，高亮当前选中的
         document.querySelectorAll('.quick-color-option').forEach(btn => {
