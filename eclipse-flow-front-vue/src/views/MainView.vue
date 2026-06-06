@@ -151,9 +151,6 @@
         <div class="header-main-row">
           <button v-if="ui.isMobile" class="sidebar-toggle-btn" @click="ui.openSidebar()">&#9776;</button>
           <h1 id="range-title">日程安排 // {{ formatDate(monday) }} - {{ formatDate(sunday) }}</h1>
-          <button class="add-task-btn" @click="showAddPanel = !showAddPanel" title="新建任务">
-            <span class="material-symbols-outlined">add</span>
-          </button>
         </div>
         <div class="header-controls-row">
           <div class="view-switcher">
@@ -249,7 +246,7 @@
     </main>
 
     <!-- FAB -->
-    <button v-if="ui.isMobile" class="fab" @click="showAddPanel = true">+</button>
+    <button class="fab" @click="showAddPanel = true">+</button>
 
     <!-- Modals -->
     <TaskModal :visible="ui.showTaskModal" :edit-task="ui.editingTask" @close="ui.showTaskModal=false;ui.editingTask=null" @saved="onSaved" />
@@ -627,13 +624,6 @@ header { padding: 14px 16px 0; padding-top: calc(14px + env(safe-area-inset-top,
 }
 .view-switcher button.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
-.add-task-btn {
-  padding: 4px 10px; border-radius: 7px; border: none;
-  background: var(--accent); cursor: pointer; display: flex; align-items: center; flex-shrink: 0;
-}
-.add-task-btn .material-symbols-outlined { font-size: 16px; color: #000; font-weight: 900; font-variation-settings: 'FILL' 1, 'wght' 900; }
-.add-task-btn:hover { background: var(--accent-bright); }
-
 /* ===== 周视图 ===== */
 #weekly-scroll-container { flex: 1; overflow-y: auto; overflow-x: auto; margin: 0 12px 12px; border-radius: 20px; scroll-behavior: smooth; }
 @media (max-width: 780px) {
@@ -741,12 +731,9 @@ header { padding: 14px 16px 0; padding-top: calc(14px + env(safe-area-inset-top,
 @media (max-width: 780px) {
   header { padding: 12px 8px 0; padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
   .header-main-row { gap: 4px; margin-bottom: 4px; }
-  .add-task-btn { display: none; }
   .header-controls-row { margin-bottom: 4px; }
   #range-title { font-size: 1rem; letter-spacing: 0; }
   .view-switcher button { padding: 5px 12px; font-size: 0.78rem; }
-  .add-task-btn { padding: 3px 8px; }
-  .add-task-btn .material-symbols-outlined { font-size: 14px; }
 
   /* 顶部右侧用户区隐藏 */
   .top-right-nav { display: none; }
