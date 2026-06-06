@@ -349,4 +349,21 @@ onUnmounted(() => {
 /* 暗色模式 */
 :root.dark .ddl-del { background: #333; color: rgba(255,255,255,0.7); }
 :root.dark .ddl-del:hover { background: #ff5050; color: #fff; }
+
+/* 移动端字体放大 */
+@media (max-width: 780px) {
+  .event-item { left: 2px; right: 2px; padding: 4px 6px; font-size: 0.82rem; }
+  .event-time-tag { font-size: 0.72rem; }
+  .event-name-text { font-size: 0.8rem; }
+  .event-note-text { font-size: 0.68rem; }
+  .del-btn-mini { font-size: 0.85rem; }
+}
+
+@media (max-width: 540px) {
+  .event-item { left: 1px; right: 1px; padding: 3px 5px; font-size: 0.78rem; }
+  .event-time-tag { font-size: 0.7rem; }
+  .event-name-text { font-size: 0.76rem; }
+  .event-note-text { font-size: 0.66rem; }
+  .del-btn-mini { font-size: 0.82rem; }
+}
 </style>

@@ -137,11 +137,9 @@
         <div class="header-main-row">
           <button v-if="ui.isMobile" class="sidebar-toggle-btn" @click="ui.openSidebar()">&#9776;</button>
           <h1 id="range-title">日程安排 // {{ formatDate(monday) }} - {{ formatDate(sunday) }}</h1>
-          <div v-if="!ui.isMobile" class="user-meta-group">
-            <div class="user-text">
-              <span class="u-name">{{ auth.username || 'OPERATOR_01' }}</span>
-              <span class="u-status">在线 // 实时同步</span>
-            </div>
+          <div v-if="!ui.isMobile" class="header-user-area">
+            <span class="u-name">{{ auth.username || 'OPERATOR_01' }}</span>
+            <span class="u-status">在线</span>
             <img :src="auth.avatarUrl || defaultAvatar" alt="Avatar" class="avatar-pixel" />
           </div>
           <button v-if="!ui.isMobile" class="icon-btn" @click="showSettings = !showSettings" title="设置">
@@ -526,9 +524,8 @@ onUnmounted(()=>{ friend.stopPolling(); if(timeTimer) clearInterval(timeTimer) }
 }
 .icon-btn:hover { background: var(--accent-bg); }
 .icon-btn .material-symbols-outlined { font-size: 20px; }
-.user-meta-group { display: flex; align-items: center; gap: 10px; }
-.user-text { text-align: right; line-height: 1.3; }
-.u-name { font-weight: 900; font-size: 0.78rem; letter-spacing: 0.06em; display: block; }
+.header-user-area { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.u-name { font-weight: 900; font-size: 0.82rem; letter-spacing: 0.06em; }
 .u-status { font-size: 0.6rem; opacity: 0.45; }
 .avatar-pixel { width: 40px; height: 40px; border-radius: 50%; border: var(--border-subtle); }
 
@@ -605,7 +602,7 @@ header { padding: 16px 16px 8px; padding-top: calc(16px + env(safe-area-inset-to
 .header-main-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 .sidebar-toggle-btn { background: none; border: none; color: var(--black); font-size: 1.3rem; cursor: pointer; flex-shrink: 0; }
 #range-title {
-  flex: 1; margin: 0; font-size: 1.2rem; font-weight: 900; line-height: 40px;
+  flex: 1; margin: 0; font-size: 1.2rem; font-weight: 900;
   letter-spacing: 0.5px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -741,11 +738,6 @@ header { padding: 16px 16px 8px; padding-top: calc(16px + env(safe-area-inset-to
   /* 滑出面板全宽 */
   .add-panel { top: 50px; right: 4px; width: calc(100vw - 8px); }
 
-  /* 事件卡片 */
-  .event-item { left: 2px; right: 2px; padding: 4px 6px; font-size: 0.8rem; }
-  .event-time-tag { font-size: 0.7rem; }
-  .event-name-text { font-size: 0.78rem; }
-
   /* 日视图 */
   .day-view-container { margin: 0 4px 4px; padding: 8px; border-radius: 14px; }
   .day-nav button { padding: 5px 10px; font-size: 0.85rem; }
@@ -772,9 +764,6 @@ header { padding: 16px 16px 8px; padding-top: calc(16px + env(safe-area-inset-to
   .time-slot-label { font-size: 0.66rem; }
   .column-header { font-size: 0.78rem; }
   .day-column { min-width: 68px; }
-  .event-item { left: 1px; right: 1px; padding: 3px 5px; font-size: 0.75rem; }
-  .event-time-tag { font-size: 0.68rem; }
-  .event-name-text { font-size: 0.75rem; }
   .sidebar-drawer { width: 240px; }
   .fab { bottom: 28px; right: 24px; }
   .time-gutter-now { font-size: 0.66rem; }
