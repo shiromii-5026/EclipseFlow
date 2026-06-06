@@ -7,7 +7,6 @@
         <span class="logo-text">EclipseFlow</span>
       </div>
       <div class="logo-divider" />
-
       <MiniCalendar />
       <FriendPanel />
       <CountdownList />
@@ -34,12 +33,68 @@
           </div>
           <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Eclipse" alt="Avatar" class="avatar-pixel" />
         </div>
-        <button class="theme-btn" @click="ui.toggleTheme()" :title="ui.isDark ? '切换日间' : '切换夜间'">
+        <button class="icon-btn add-btn" @click="showAddPanel = !showAddPanel" title="新建任务">
+          <span class="material-symbols-outlined">add</span>
+        </button>
+        <button class="icon-btn" @click="ui.toggleTheme()" :title="ui.isDark ? '切换日间' : '切换夜间'">
           <span class="material-symbols-outlined">contrast</span>
         </button>
-        <button class="theme-btn logout-btn" @click="auth.logout()" title="退出登录">出</button>
+        <button class="icon-btn logout-btn" @click="auth.logout()" title="退出登录">出</button>
       </div>
 
+      <!-- ===== 新建任务滑出面板 ===== -->
+      <div class="add-panel" :class="{ open: showAddPanel }">
+        <div class="add-panel-inner glass">
+          <div class="add-panel-head">
+            <span class="add-panel-title">丨 新建任务录入</span>
+            <button class="add-panel-close" @click="showAddPanel = false">&times;</button>
+          </div>
+          <div class="add-panel-body">
+            <input v-model="newTask.name" type="text" placeholder="任务内容 (例如: 高等数学作业)" class="task-input" @keyup.enter="saveNewTask" />
+            <div class="input-group">
+              <input v-model="newTask.date" type="date" class="f-input" />
+              <div class="time-picker">
+                <select v-model="newTask.hour" class="f-select">
+                  <option v-for="h in 24" :key="h" :value="String(h-1).padStart(2,'0')">{{ String(h-1).padStart(2,'0') }}</option>
+                </select>
+                <span class="time-colon">:</span>
+                <select v-model="newTask.minute" class="f-select">
+                  <option v-for="m in 12" :key="m" :value="String((m-1)*5).padStart(2,'0')">{{ String((m-1)*5).padStart(2,'0') }}</option>
+                </select>
+              </div>
+              <div class="time-picker">
+                <span class="deadline-label">截止（可选）</span>
+                <select v-model="newTask.deadlineHour" class="f-select">
+                  <option value="">--</option>
+                  <option v-for="h in 24" :key="h" :value="String(h-1).padStart(2,'0')">{{ String(h-1).padStart(2,'0') }}</option>
+                </select>
+                <span class="time-colon">:</span>
+                <select v-model="newTask.deadlineMin" class="f-select">
+                  <option value="">--</option>
+                  <option v-for="m in 12" :key="m" :value="String((m-1)*5).padStart(2,'0')">{{ String((m-1)*5).padStart(2,'0') }}</option>
+                </select>
+              </div>
+              <select v-model="newTask.color" class="f-select">
+                <option value="#b5d528aa">翠绿（默认）</option>
+                <option value="#f89828aa">鲜橙</option>
+                <option value="#5eb8e8">天蓝</option>
+                <option value="#f07880">赤红</option>
+                <option value="#b088e0aa">淡紫</option>
+              </select>
+              <button class="save-btn" @click="saveNewTask">立即保存 +</button>
+            </div>
+            <div class="ocr-drop-zone" @click="$refs.ocrInputRef?.click()">
+              <span class="material-symbols-outlined ocr-icon">imagesmode</span>
+              <span class="ocr-text">拖拽图片到这里，自动识别文字填表</span>
+              <span class="ocr-hint">或点击选择文件</span>
+              <input ref="ocrInputRef" type="file" accept="image/*" hidden @change="onOcrFile" />
+              <span class="ocr-status">{{ ocrStatus }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== Header ===== -->
       <header>
         <div class="mobile-top-bar">
           <button v-if="ui.isMobile" class="sidebar-toggle-btn" @click="ui.openSidebar()">&#9776;</button>
@@ -56,7 +111,7 @@
         </div>
       </header>
 
-      <!-- 周视图 -->
+      <!-- ===== 周视图 ===== -->
       <div v-if="cal.viewMode === 'week'" id="weekly-scroll-container" class="glass">
         <div class="weekly-grid" id="weekly-grid">
           <div class="time-gutter">
@@ -86,11 +141,11 @@
         </div>
       </div>
 
-      <!-- 日视图 -->
+      <!-- ===== 日视图 ===== -->
       <div v-if="cal.viewMode === 'day'" id="day-view-container" class="day-view-container glass">
         <div class="day-nav">
           <button @click="cal.prevDay()">&lt;</button>
-          <span>{{ cal.currentFocusDate.getMonth()+1 }}月{{ cal.currentFocusDate.getDate() }}日 {{ weekDayName }}</span>
+          <span class="day-date">{{ cal.currentFocusDate.getMonth()+1 }}月{{ cal.currentFocusDate.getDate() }}日 {{ weekDayName }}</span>
           <button @click="cal.nextDay()">&gt;</button>
         </div>
         <div class="day-grid" style="position:relative">
@@ -115,74 +170,26 @@
         </div>
       </div>
 
-      <!-- 列表视图 -->
+      <!-- ===== 列表视图 ===== -->
       <div v-if="cal.viewMode === 'list'" class="list-view glass">
-        <div style="padding:12px 16px;font-size:0.8rem;opacity:0.5">本周任务 ({{ allTasks.length }})</div>
-        <div v-if="allTasks.length===0" style="text-align:center;opacity:0.3;padding:40px">暂无任务</div>
+        <div class="list-header">本周任务 ({{ allTasks.length }})</div>
+        <div v-if="allTasks.length===0" class="list-empty">暂无任务</div>
         <div
           v-for="t in allTasks" :key="t.id+t._date"
           class="task-list-item"
           @click="ui.editingTask={task:t as any,dateStr:t._date};ui.showTaskModal=true"
         >
-          <div style="width:4px;height:24px;border-radius:2px;margin-right:10px;flex-shrink:0" :style="{background:t.color||'#b5d528aa'}" />
-          <div style="flex:1">
-            <div style="font-weight:600;font-size:0.82rem">{{ t.name }}</div>
-            <div style="font-size:0.65rem;opacity:0.5">{{ t._date }} {{ t.time }}</div>
+          <div class="tl-color" :style="{background:t.color||'#b5d528aa'}" />
+          <div class="tl-info">
+            <div class="tl-name">{{ t.name }}</div>
+            <div class="tl-meta">{{ t._date }} {{ t.time }}</div>
           </div>
-          <span style="font-size:0.72rem;opacity:0.6">{{ t.duration>0?t.duration+'h':'DDL' }}</span>
+          <span class="tl-dur">{{ t.duration>0?t.duration+'h':'DDL' }}</span>
         </div>
       </div>
-
-      <!-- ===== 表单区域 ===== -->
-      <section id="add-task-section">
-        <h2 class="form-title">丨 新建任务录入</h2>
-        <div class="geometric-add-form glass">
-          <input v-model="newTask.name" type="text" placeholder="任务内容 (例如: 高等数学作业)" class="task-input" />
-          <div class="input-group">
-            <input v-model="newTask.date" type="date" class="cyber-input" />
-            <div class="time-picker-cyber">
-              <select v-model="newTask.hour" class="cyber-select">
-                <option v-for="h in 24" :key="h" :value="String(h-1).padStart(2,'0')">{{ String(h-1).padStart(2,'0') }}</option>
-              </select>
-              <span class="cyber-divider">:</span>
-              <select v-model="newTask.minute" class="cyber-select">
-                <option v-for="m in 12" :key="m" :value="String((m-1)*5).padStart(2,'0')">{{ String((m-1)*5).padStart(2,'0') }}</option>
-              </select>
-            </div>
-            <div class="time-picker-cyber">
-              <span class="deadline-label">截止（可选）</span>
-              <select v-model="newTask.deadlineHour" class="cyber-select">
-                <option value="">--</option>
-                <option v-for="h in 24" :key="h" :value="String(h-1).padStart(2,'0')">{{ String(h-1).padStart(2,'0') }}</option>
-              </select>
-              <span class="cyber-divider">:</span>
-              <select v-model="newTask.deadlineMin" class="cyber-select">
-                <option value="">--</option>
-                <option v-for="m in 12" :key="m" :value="String((m-1)*5).padStart(2,'0')">{{ String((m-1)*5).padStart(2,'0') }}</option>
-              </select>
-            </div>
-            <select v-model="newTask.color" class="cyber-select">
-              <option value="#b5d528aa">翠绿（默认）</option>
-              <option value="#f89828aa">鲜橙</option>
-              <option value="#5eb8e8">天蓝</option>
-              <option value="#f07880">赤红</option>
-              <option value="#b088e0aa">淡紫</option>
-            </select>
-            <button class="save-btn" @click="saveNewTask">立即保存 +</button>
-          </div>
-          <!-- OCR 拖拽区 -->
-          <div class="ocr-drop-zone" @click="$refs.ocrInputRef?.click()">
-            <span class="material-symbols-outlined">imagesmode</span>
-            <span class="ocr-drop-text">拖拽图片到这里，自动识别文字填表</span>
-            <span class="ocr-drop-hint">或点击选择文件</span>
-            <input ref="ocrInputRef" type="file" accept="image/*" hidden @change="onOcrFile" />
-            <span class="ocr-status">{{ ocrStatus }}</span>
-          </div>
-        </div>
-      </section>
     </main>
 
-    <!-- 移动端底部导航 -->
+    <!-- ===== 移动端底部导航 ===== -->
     <nav v-if="ui.isMobile" class="bottom-nav">
       <div class="bottom-nav-item" :class="{active:cal.viewMode==='week'}" @click="switchView('week')">
         <span class="material-symbols-outlined">calendar_view_week</span>
@@ -203,7 +210,7 @@
     </nav>
 
     <!-- FAB -->
-    <button v-if="ui.isMobile" class="fab" @click="scrollToForm">+</button>
+    <button v-if="ui.isMobile" class="fab" @click="showAddPanel = true">+</button>
 
     <!-- Modals -->
     <TaskModal :visible="ui.showTaskModal" :edit-task="ui.editingTask" @close="ui.showTaskModal=false;ui.editingTask=null" @saved="onSaved" />
@@ -235,10 +242,10 @@ const auth = useAuthStore()
 const friend = useFriendStore()
 const ui = useUiStore()
 
+const showAddPanel = ref(false)
 const weekNames = ['周一','周二','周三','周四','周五','周六','周日']
 const weekDayName = computed(() => ['周日','周一','周二','周三','周四','周五','周六'][cal.currentFocusDate.getDay()])
 const todayStr = computed(() => cal.getCSTDateStr(new Date()))
-
 const monday = computed(() => cal.getWeekRange(cal.currentFocusDate).monday)
 const sunday = computed(() => cal.getWeekRange(cal.currentFocusDate).sunday)
 
@@ -282,7 +289,6 @@ const allTasks = computed(() => {
 // ---- 新任务表单 ----
 const newTask = reactive({ name:'', date:cal.focusDateStr, hour:'09', minute:'00', deadlineHour:'', deadlineMin:'', color:'#b5d528aa' })
 const ocrStatus = ref('')
-const ocrInputRef = ref<HTMLInputElement|null>(null)
 
 async function saveNewTask() {
   if (!newTask.name || !newTask.date) { ui.showToast('请填写任务名称和日期'); return }
@@ -293,7 +299,7 @@ async function saveNewTask() {
     duration=(em-sm)/60; if(duration<=0){ui.showToast('截止时间必须晚于开始时间');return}; deadline=`${newTask.deadlineHour}:${newTask.deadlineMin}:00`
   } else { taskType='DDL'; duration=0; deadline=`${newTask.hour}:${newTask.minute}:00` }
   await taskStore.saveTask({ taskName:newTask.name, taskDate:newTask.date, startTime:st+':00', duration, deadline, taskType, color:newTask.color })
-  newTask.name = ''; ui.showToast('任务已创建')
+  newTask.name = ''; showAddPanel.value = false; ui.showToast('任务已创建')
 }
 
 async function onOcrFile(e: Event) {
@@ -301,7 +307,7 @@ async function onOcrFile(e: Event) {
   ocrStatus.value='识别中...'
   try {
     const r = await ocrApi.uploadImage(file, newTask.date)
-    if(r.tasks?.length){ const t=r.tasks[0] as any; newTask.name=t.taskName||''; if(t.startTime?.length>=5){newTask.hour=t.startTime.substring(0,2);newTask.minute=t.startTime.substring(3,5)}; ocrStatus.value='识别成功！' }
+    if(r.tasks?.length){ const t=r.tasks[0] as any; newTask.name=t.taskName||''; if(t.startTime?.length>=5){newTask.hour=t.startTime.substring(0,2);newTask.minute=t.startTime.substring(3,5)}; ocrStatus.value='识别成功' }
     else ocrStatus.value='未识别到任务'
   } catch { ocrStatus.value='识别失败' }
 }
@@ -310,7 +316,6 @@ function switchView(v:'week'|'day'|'list') { cal.viewMode=v }
 function handleDelete(id:number){ if(confirm('确定删除？')) taskStore.deleteTask(id) }
 function handleEdit(p:{task:TaskCache;dateStr:string}){ ui.editingTask={task:p.task as any, dateStr:p.dateStr}; ui.showTaskModal=true }
 function onSaved(){}
-function scrollToForm(){ document.getElementById('add-task-section')?.scrollIntoView({behavior:'smooth'}) }
 
 onMounted(async ()=>{
   ui.initTheme()
@@ -339,47 +344,104 @@ onUnmounted(()=>friend.stopPolling())
 .logo-area { display: flex; align-items: center; gap: 8px; }
 .logo-area .material-symbols-outlined { font-size: 28px; color: var(--accent); }
 .logo-text { font-size: 1.2rem; font-weight: 900; letter-spacing: 0.06em; color: var(--accent); }
-.logo-divider { height: 4px; background: var(--accent); border-radius: 2px; margin: 4px 0; }
+.logo-divider { height: 3px; background: linear-gradient(90deg,var(--accent) 0,var(--accent) 30%,transparent 30%,transparent 35%,var(--accent) 35%,var(--accent) 50%,transparent 50%,transparent 55%,var(--accent) 55%,var(--accent) 75%,transparent 75%); opacity: 0.3; border-radius: 1px; margin: 4px 0; }
 
 /* ===== 主内容 ===== */
 .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; min-width: 0; }
 
-/* 顶栏 */
+/* ===== 顶栏 ===== */
 .top-right-nav {
-  position: absolute; top: 12px; right: 16px; display: flex; align-items: center; gap: 10px; z-index: 20;
+  position: absolute; top: 12px; right: 16px; display: flex; align-items: center; gap: 8px; z-index: 30;
 }
 .user-meta-group { display: flex; align-items: center; gap: 10px; }
 .user-text { text-align: right; line-height: 1.3; }
 .u-name { font-weight: 900; font-size: 0.78rem; letter-spacing: 0.06em; display: block; }
 .u-status { font-size: 0.6rem; opacity: 0.45; }
 .avatar-pixel { width: 40px; height: 40px; border-radius: 50%; border: var(--border-subtle); }
-.theme-btn {
+.icon-btn {
   width: 36px; height: 36px; border-radius: 50%; border: var(--border-subtle);
   background: var(--glass-bg); backdrop-filter: blur(12px); cursor: pointer;
   display: flex; align-items: center; justify-content: center; color: var(--black);
 }
-.theme-btn:hover { background: var(--accent-bg); }
+.icon-btn:hover { background: var(--accent-bg); }
+.icon-btn .material-symbols-outlined { font-size: 20px; }
 .logout-btn { font-size: 0.7rem; font-weight: 900; }
+.add-btn { border-color: var(--accent); }
+.add-btn .material-symbols-outlined { color: var(--accent); }
 
-/* Header */
-header { padding: 10px 16px 0; flex-shrink: 0; }
+/* ===== 滑出添加面板 ===== */
+.add-panel {
+  position: absolute; top: 60px; right: 16px; z-index: 25;
+  width: 460px; max-width: calc(100vw - 32px);
+  opacity: 0; visibility: hidden; transform: translateY(-12px);
+  transition: all 0.25s var(--ease-fluid);
+}
+.add-panel.open { opacity: 1; visibility: visible; transform: translateY(0); }
+.add-panel-inner { border-radius: 18px; padding: 16px 20px; background: var(--glass-bg); backdrop-filter: blur(30px); border: var(--glass-border); box-shadow: var(--glass-shadow); }
+.add-panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.add-panel-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; opacity: 0.5; }
+.add-panel-close { background: none; border: none; color: var(--black); font-size: 1.3rem; cursor: pointer; opacity: 0.4; line-height: 1; }
+.add-panel-close:hover { opacity: 0.8; }
+.add-panel-body { display: flex; flex-direction: column; gap: 8px; }
+.task-input {
+  width: 100%; height: 48px; padding: 0 14px; border-radius: 14px;
+  border: var(--border-subtle); background: var(--white); color: var(--black);
+  font-size: 0.88rem; font-weight: 700; box-sizing: border-box;
+}
+.task-input::placeholder { font-weight: 400; opacity: 0.45; }
+.input-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.f-input { height: 48px; padding: 0 10px; border-radius: 12px; border: var(--border-subtle); background: var(--white); color: var(--black); font-size: 0.8rem; min-width: 130px; }
+.time-picker { display: flex; align-items: center; gap: 2px; }
+.f-select { height: 48px; padding: 0 8px; border-radius: 12px; border: var(--border-subtle); background: var(--white); color: var(--black); font-size: 0.78rem; min-width: 60px; }
+.time-colon { font-weight: 900; margin: 0 2px; }
+.deadline-label { font-size: 0.6rem; opacity: 0.45; margin-right: 2px; white-space: nowrap; }
+.save-btn {
+  height: 48px; padding: 0 22px; border-radius: 14px; border: none;
+  background: var(--accent); color: #000; font-weight: 900; cursor: pointer; font-size: 0.85rem; letter-spacing: 0.04em;
+}
+.save-btn:hover { background: var(--accent-bright); }
+.ocr-drop-zone {
+  width: 100%; min-height: 44px; padding: 8px 16px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px;
+  border: 1.5px dashed var(--grid-line); border-radius: 14px; cursor: pointer;
+  transition: border-color 0.25s ease, background 0.25s ease; user-select: none;
+  margin-top: 4px; box-sizing: border-box;
+}
+.ocr-drop-zone:hover { border-color: var(--accent); background: var(--accent-bg-hover); }
+.ocr-icon { font-size: 20px; opacity: 0.5; }
+.ocr-text { font-size: 0.8rem; font-weight: 700; opacity: 0.55; }
+.ocr-hint { font-size: 0.7rem; opacity: 0.35; }
+.ocr-status { font-size: 0.75rem; font-weight: 700; color: var(--accent); }
+
+/* ===== Header ===== */
+header { padding: 16px 20px 0; flex-shrink: 0; }
 .mobile-top-bar { display: flex; align-items: center; gap: 10px; }
 .sidebar-toggle-btn { background: none; border: none; color: var(--black); font-size: 1.4rem; cursor: pointer; }
-#range-title { font-size: 0.9rem; font-weight: 700; opacity: 0.6; margin: 0; }
-.header-divider { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
-.acid-segment { flex: 1; height: 2px; background: var(--accent); }
-.header-barcode { width: 60px; height: 12px;
-  background: repeating-linear-gradient(90deg, var(--accent) 0, var(--accent) 2px, transparent 2px, transparent 4px);
+#range-title {
+  margin: 0 0 8px 0; font-size: 1.4rem; font-weight: 900;
+  letter-spacing: 1px; opacity: 0.9;
 }
-.view-switcher { display: flex; gap: 6px; margin-bottom: 8px; }
+.header-divider { display: flex; align-items: center; gap: 10px; height: 4px; margin-bottom: 18px; }
+.acid-segment { width: 40px; height: 100%; background: var(--accent); border-radius: 2px; box-shadow: 0 0 8px rgba(61,122,79,0.3); }
+.dark .acid-segment { box-shadow: 0 0 12px rgba(184,242,0,0.5); }
+.header-barcode {
+  flex: 1; height: 1px;
+  background: repeating-linear-gradient(90deg, var(--black) 0, var(--black) 2px, transparent 2px, transparent 6px);
+  opacity: 0.15;
+}
+.dark .header-barcode { opacity: 0.25; }
+
+.view-switcher { display: flex; gap: 6px; margin-bottom: 10px; }
 .view-switcher button {
-  padding: 4px 14px; border-radius: 6px; border: var(--border-subtle);
-  background: transparent; color: var(--black); cursor: pointer; font-size: 0.72rem;
+  padding: 5px 16px; border-radius: 8px; border: var(--border-subtle);
+  background: transparent; color: var(--black); cursor: pointer; font-size: 0.72rem; font-weight: 600;
 }
 .view-switcher button.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
 /* ===== 周视图 ===== */
-#weekly-scroll-container { flex: 1; overflow: auto; border-radius: 12px; margin: 0 10px 10px; }
+#weekly-scroll-container { flex: 1; overflow-y: auto; overflow-x: hidden; margin: 0 12px 12px; border-radius: 20px; }
+#weekly-scroll-container::-webkit-scrollbar { width: 6px; }
+#weekly-scroll-container::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
 .weekly-grid { display: flex; min-width: 780px; min-height: 100%; }
 .time-gutter { width: 52px; flex-shrink: 0; border-right: 1px solid var(--grid-line); }
 .time-slot-label { height: var(--hour-height); font-size: 0.58rem; display: flex; align-items: flex-start; justify-content: flex-end; padding-right: 6px; opacity: 0.35; }
@@ -391,52 +453,46 @@ header { padding: 10px 16px 0; flex-shrink: 0; }
 .current-time-line::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #f44336; }
 
 /* ===== 日视图 ===== */
-.day-view-container { flex: 1; overflow-y: auto; border-radius: 12px; margin: 0 10px 10px; padding: 8px; }
-.day-nav { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; font-weight: 600; font-size: 0.85rem; }
-.day-nav button { background: none; border: 1px solid var(--grid-line); color: var(--black); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.day-view-container { flex: 1; overflow-y: auto; border-radius: 20px; margin: 0 12px 12px; padding: 12px; }
+.day-nav { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; margin-bottom: 8px; }
+.day-nav button { background: var(--black); color: var(--white); border: none; border-radius: 6px; padding: 5px 12px; cursor: pointer; font-weight: 700; font-size: 0.75rem; }
+.day-date { font-weight: 700; font-size: 0.9rem; }
 .day-task-card {
   position: absolute; left: 52px; right: 6px; background: var(--task-color); border-radius: 6px;
   padding: 4px 8px; font-size: 0.7rem; cursor: pointer; z-index: 2; color: #000; overflow: hidden;
 }
 
 /* ===== 列表视图 ===== */
-.list-view { flex: 1; overflow-y: auto; border-radius: 12px; margin: 0 10px 10px; }
+.list-view { flex: 1; overflow-y: auto; border-radius: 20px; margin: 0 12px 12px; }
+.list-header { padding: 10px 16px; font-size: 0.8rem; opacity: 0.5; border-bottom: 1px solid var(--grid-line); }
+.list-empty { text-align: center; opacity: 0.3; padding: 40px; font-size: 0.85rem; }
 .task-list-item { display: flex; align-items: center; padding: 10px 16px; cursor: pointer; border-bottom: 1px solid var(--grid-line); }
 .task-list-item:hover { background: var(--accent-bg); }
+.tl-color { width: 5px; height: 28px; border-radius: 3px; margin-right: 12px; flex-shrink: 0; }
+.tl-info { flex: 1; }
+.tl-name { font-weight: 600; font-size: 0.85rem; }
+.tl-meta { font-size: 0.65rem; opacity: 0.45; }
+.tl-dur { font-size: 0.72rem; opacity: 0.5; }
 
-/* ===== 表单区 ===== */
-#add-task-section { flex-shrink: 0; padding: 10px 16px 16px; }
-.form-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; opacity: 0.5; margin-bottom: 8px; }
-.geometric-add-form { border-radius: 14px; padding: 16px; }
-.task-input { width: 100%; padding: 10px 14px; border-radius: 10px; border: var(--border-subtle); background: var(--white); color: var(--black); font-size: 0.85rem; margin-bottom: 10px; }
-.input-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.cyber-input { padding: 6px 10px; border-radius: 8px; border: var(--border-subtle); background: var(--white); color: var(--black); font-size: 0.8rem; }
-.time-picker-cyber { display: flex; align-items: center; gap: 2px; }
-.cyber-select { padding: 6px 8px; border-radius: 8px; border: var(--border-subtle); background: var(--white); color: var(--black); font-size: 0.78rem; }
-.cyber-divider { font-weight: 700; margin: 0 1px; }
-.deadline-label { font-size: 0.6rem; opacity: 0.5; margin-right: 2px; }
-.save-btn { padding: 8px 18px; border-radius: 10px; border: none; background: var(--accent); color: #000; font-weight: 700; cursor: pointer; font-size: 0.82rem; }
-.save-btn:hover { background: var(--accent-bright); }
-.ocr-drop-zone {
-  margin-top: 10px; border: 2px dashed var(--grid-line); border-radius: 10px; padding: 14px;
-  text-align: center; cursor: pointer; font-size: 0.75rem; opacity: 0.7; transition: 0.2s;
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-}
-.ocr-drop-zone:hover { opacity: 1; border-color: var(--accent); }
-.ocr-drop-text { font-size: 0.78rem; }
-.ocr-drop-hint { font-size: 0.65rem; opacity: 0.5; }
-.ocr-status { font-size: 0.7rem; color: var(--accent); }
-
-/* ===== 移动端抽屉 ===== */
+/* ===== 移动端 ===== */
 .sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; }
 .sidebar-drawer { position: fixed; left: 0; top: 0; bottom: 0; width: 260px; z-index: 101; transform: translateX(-100%); transition: transform 0.3s ease; padding: 14px; overflow-y: auto; }
 .sidebar-drawer.open { transform: translateX(0); }
-
-/* ===== 移动端底部 ===== */
 .bottom-nav { display: flex; justify-content: space-around; padding: 4px 0; border-top: var(--border-subtle); background: var(--bg); flex-shrink: 0; }
 .bottom-nav-item { display: flex; flex-direction: column; align-items: center; padding: 4px 12px; cursor: pointer; opacity: 0.4; font-size: 0.6rem; gap: 2px; }
 .bottom-nav-item.active { opacity: 1; color: var(--accent); }
 .bottom-nav-item .material-symbols-outlined { font-size: 20px; }
 .bottom-nav-label { font-size: 0.6rem; }
 .fab { position: fixed; bottom: 70px; right: 20px; width: 48px; height: 48px; border-radius: 50%; background: var(--accent); color: #000; font-size: 1.5rem; border: none; cursor: pointer; z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+
+/* ===== 响应式 ===== */
+@media (max-width: 780px) {
+  .top-right-nav { top: 8px; right: 8px; }
+  #range-title { font-size: 1rem; }
+  header { padding: 8px 10px 0; }
+  .add-panel { top: 50px; right: 8px; width: calc(100vw - 16px); }
+}
+@media (max-width: 540px) {
+  #range-title { font-size: 0.9rem; }
+}
 </style>

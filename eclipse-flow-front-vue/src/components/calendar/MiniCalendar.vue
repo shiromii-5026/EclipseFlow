@@ -48,17 +48,31 @@ function selectDay(d:Date){ cal.setFocusDate(d); if(ui.isMobile) ui.closeSidebar
 </script>
 
 <style scoped>
-.mini-calendar { font-size: 0.72rem; }
-.month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.month-nav button { background: none; border: none; color: var(--black); font-size: 1rem; cursor: pointer; opacity: 0.5; }
-.month-nav button:hover { opacity: 1; }
+.mini-calendar {
+  padding: 18px; border-radius: 20px;
+  background: rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.12);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.4);
+}
+.dark .mini-calendar {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-weight: 900; }
+.month-nav button {
+  border: none; background: var(--black); color: var(--white);
+  font-weight: 900; cursor: pointer; padding: 4px 10px; border-radius: 6px;
+}
 .month-nav span { font-weight: 700; font-size: 0.78rem; }
-.mini-grid-head { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; font-size: 0.55rem; opacity: 0.35; margin-bottom: 2px; }
+.mini-grid-head { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; font-size: 0.58rem; opacity: 0.35; margin-bottom: 4px; }
 .mini-days { display: grid; grid-template-columns: repeat(7,1fr); gap: 1px; }
 .mini-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 0.68rem; border-radius: 50%; cursor: pointer; position: relative; }
 .mini-day.empty { cursor: default; }
 .mini-day.active { background: var(--accent); color: #000; font-weight: 700; }
 .mini-day.has-tasks::after { content: ''; position: absolute; bottom: 1px; width: 3px; height: 3px; border-radius: 50%; background: var(--accent); }
-.today-link { display: block; width: 100%; margin-top: 8px; padding: 4px; border-radius: 6px; border: var(--border-subtle); background: transparent; color: var(--black); cursor: pointer; font-size: 0.65rem; opacity: 0.5; }
-.today-link:hover { opacity: 1; background: var(--accent-bg); }
+.today-link {
+  border: none; background: var(--black); color: var(--white);
+  font-weight: 900; cursor: pointer; width: 100%; margin-top: 15px;
+  padding: 10px; border-radius: 10px; font-size: 0.7rem; letter-spacing: 0.04em;
+}
+.today-link:hover { opacity: 0.85; }
 </style>
