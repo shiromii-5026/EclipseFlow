@@ -36,8 +36,21 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
 
-        // 登录和注册不需要 token
-        if (path.startsWith("/api/auth/")) {
+        // 登录和注册不需要 token，但 profile 需要
+        if (path.equals("/api/auth/login") || path.equals("/api/auth/register")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // /api/auth/profile 和 /api/social 等需要 token
+        if (path.startsWith("/api/auth/profile")) {
+            String header = request.getHeader("Authorization");
+            if (header != null && header.startsWith("Bearer ")) {
+                String token = header.substring(7);
+                if (jwtUtil.validateToken(token)) {
+                    request.setAttribute("userId", jwtUtil.getUserId(token));
+                }
+            }
             chain.doFilter(request, response);
             return;
         }

@@ -31,7 +31,7 @@
             <span class="u-name">{{ auth.username || 'OPERATOR_01' }}</span>
             <span class="u-status">在线 // 实时同步</span>
           </div>
-          <img :src="`https://api.dicebear.com/7.x/pixel-art/svg?seed=${avatarSeed}`" alt="Avatar" class="avatar-pixel" />
+          <img :src="`https://api.dicebear.com/7.x/pixel-art/svg?seed=${auth.avatarSeed || 'Eclipse'}`" alt="Avatar" class="avatar-pixel" />
         </div>
         <button class="icon-btn" @click="showSettings = !showSettings" title="设置">
           <span class="material-symbols-outlined">settings</span>
@@ -39,19 +39,24 @@
       </div>
 
       <!-- ===== 设置面板 ===== -->
-      <div class="add-panel" :class="{ open: showSettings }" style="width:300px">
+      <div class="add-panel" :class="{ open: showSettings }" style="width:320px">
         <div class="add-panel-inner glass">
           <div class="add-panel-head">
             <span class="add-panel-title">丨 设置</span>
             <button class="add-panel-close" @click="showSettings = false">&times;</button>
           </div>
           <div class="add-panel-body">
-            <img :src="`https://api.dicebear.com/7.x/pixel-art/svg?seed=${avatarSeed}`" class="settings-avatar" />
-            <label>头像 ID</label>
+            <img :src="`https://api.dicebear.com/7.x/pixel-art/svg?seed=${settingsSeed}`" class="settings-avatar" />
+            <label>头像种子</label>
             <div class="settings-row">
-              <input v-model="avatarSeed" type="text" class="f-input" style="flex:1" @keyup.enter="showSettings=false" />
-              <button class="save-btn" @click="showSettings=false">确定</button>
+              <input v-model="settingsSeed" type="text" class="f-input" style="flex:1" placeholder="输入 dicebear seed" />
+              <button class="save-btn" @click="saveProfile">更新</button>
             </div>
+            <label>用户名</label>
+            <div class="settings-row">
+              <input v-model="settingsName" type="text" class="f-input" style="flex:1" placeholder="输入新用户名" />
+            </div>
+            <span class="settings-hint">修改后 #0000 后缀将保留不变</span>
             <label>主题</label>
             <div class="settings-row">
               <button class="f-btn" @click="ui.toggleTheme(); showSettings=false">{{ ui.isDark ? '切换日间' : '切换夜间' }}</button>
@@ -248,7 +253,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useCalendarStore } from '@/stores/calendar'
 import { useTaskStore } from '@/stores/tasks'
 import { useAuthStore } from '@/stores/auth'
@@ -272,7 +277,24 @@ const ui = useUiStore()
 
 const showAddPanel = ref(false)
 const showSettings = ref(false)
-const avatarSeed = ref(localStorage.getItem('eclipse_avatar') || 'Eclipse')
+const settingsSeed = ref(auth.avatarSeed || 'Eclipse')
+const settingsName = ref('')
+
+// 打开设置时同步当前值
+watch(showSettings, v => {
+  if (v) {
+    settingsSeed.value = auth.avatarSeed || 'Eclipse'
+    // 提取用户名不含后缀的部分
+    const name = auth.username || ''
+    const hashIdx = name.lastIndexOf('#')
+    settingsName.value = hashIdx >= 0 ? name.substring(0, hashIdx) : name
+  }
+})
+
+async function saveProfile() {
+  await auth.updateProfile(settingsName.value, settingsSeed.value)
+  showSettings.value = false
+}
 const weekNames = ['周一','周二','周三','周四','周五','周六','周日']
 const weekDayName = computed(() => ['周日','周一','周二','周三','周四','周五','周六'][cal.currentFocusDate.getDay()])
 const todayStr = computed(() => cal.getCSTDateStr(new Date()))
@@ -349,6 +371,7 @@ function onSaved(){}
 
 onMounted(async ()=>{
   ui.initTheme()
+  await auth.fetchProfile()
   await taskStore.fetchTasks()
   await friend.refreshFriends()
   friend.startPolling()
@@ -406,6 +429,7 @@ onUnmounted(()=>friend.stopPolling())
 }
 .f-btn:hover { background: var(--accent-bg); }
 .f-btn.danger { color: var(--danger); border-color: var(--danger); }
+.settings-hint { font-size: 0.6rem; opacity: 0.35; margin: -4px 0 4px; }
 
 /* ===== 滑出添加面板 ===== */
 .add-panel {

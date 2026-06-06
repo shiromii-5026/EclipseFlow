@@ -105,6 +105,26 @@ export const authApi = {
     }
     return resp.json()
   },
+
+  async getProfile(): Promise<{ id: number; username: string; avatarSeed: string }> {
+    const resp = await fetch(`${BASE}/auth/profile`, { headers: authHeaders() })
+    await handleResponse(resp)
+    return resp.json()
+  },
+
+  async updateProfile(data: { username?: string; avatarSeed?: string }): Promise<{ username: string; avatarSeed: string }> {
+    const resp = await fetch(`${BASE}/auth/profile`, {
+      method: 'PUT',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    await handleResponse(resp)
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: '更新失败' }))
+      throw new Error(err.error || '更新失败')
+    }
+    return resp.json()
+  },
 }
 
 // ===== 社交 API =====
