@@ -48,13 +48,13 @@
           <div class="add-panel-body">
             <div class="avatar-crop-box" @click="$refs.avatarInput?.click()" title="点击更换头像">
               <img :src="settingsPreview || defaultAvatar" class="settings-avatar" />
-              <span class="material-symbols-outlined crop-icon">edit</span>
+              <span class="crop-icon">&#9998;</span>
             </div>
             <input ref="avatarInput" type="file" accept="image/*" hidden @change="onAvatarFile" />
             <label>头像</label>
             <div class="settings-row">
               <button class="f-btn" @click="$refs.avatarInput?.click()">选择图片</button>
-              <button v-if="settingsPreview !== auth.avatarUrl && settingsPreview !== defaultAvatar" class="save-btn" @click="doUploadAvatar">确认上传</button>
+              <button v-if="avatarFileData" class="save-btn" @click="doUploadAvatar">确认上传</button>
             </div>
             <label>用户名</label>
             <div class="settings-row">
@@ -325,14 +325,23 @@ function onAvatarFile(e: Event) {
 
 async function doUploadAvatar() {
   if (!avatarFileData.value) return
-  await auth.uploadAvatar(avatarFileData.value)
-  avatarFileData.value = null
-  ui.showToast('头像已更新')
+  try {
+    await auth.uploadAvatar(avatarFileData.value)
+    avatarFileData.value = null
+    ui.showToast('头像已更新')
+  } catch (e: any) {
+    ui.showToast(e.message || '头像上传失败')
+  }
 }
 
 async function saveProfile() {
-  await auth.updateProfile(settingsName.value)
-  showSettings.value = false
+  try {
+    await auth.updateProfile(settingsName.value)
+    ui.showToast('用户名已更新')
+    showSettings.value = false
+  } catch (e: any) {
+    ui.showToast(e.message || '更新失败')
+  }
 }
 const weekNames = ['周一','周二','周三','周四','周五','周六','周日']
 const weekDayName = computed(() => ['周日','周一','周二','周三','周四','周五','周六'][cal.currentFocusDate.getDay()])
@@ -466,9 +475,9 @@ onUnmounted(()=>friend.stopPolling())
 .avatar-crop-box:hover { border-style: solid; }
 .settings-avatar { width: 100%; height: 100%; object-fit: cover; display: block; }
 .crop-icon {
-  position: absolute; bottom: 0; right: 0; background: var(--accent); color: #000;
-  border-radius: 50%; font-size: 14px; padding: 2px; width: 20px; height: 20px;
-  display: flex; align-items: center; justify-content: center;
+  position: absolute; bottom: 2px; right: 2px; background: var(--accent); color: #000;
+  border-radius: 50%; font-size: 11px; width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
 }
 .settings-row { display: flex; gap: 8px; align-items: center; }
 .settings-user { font-weight: 700; font-size: 0.85rem; flex: 1; }
@@ -568,7 +577,7 @@ header { padding: 16px 20px 0; flex-shrink: 0; }
 .column-header span { font-size: 0.58rem; opacity: 0.5; }
 .day-column { flex: 1; min-width: 100px; position: relative; border-right: 1px solid var(--grid-line); }
 .day-column.today { background: var(--today-highlight); }
-.current-time-line { position: absolute; left: 0; right: 0; height: 2px; background: #f44336; z-index: 10; pointer-events: none; }
+.current-time-line { position: absolute; left: 0; right: 0; height: 2px; background: #f44336; z-index: 3; pointer-events: none; }
 .current-time-line::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: #f44336; }
 
 /* ===== 日视图 ===== */
