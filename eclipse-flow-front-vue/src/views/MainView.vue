@@ -33,9 +33,6 @@
           </div>
           <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Eclipse" alt="Avatar" class="avatar-pixel" />
         </div>
-        <button class="icon-btn add-btn" @click="showAddPanel = !showAddPanel" title="新建任务">
-          <span class="material-symbols-outlined">add</span>
-        </button>
         <button class="icon-btn" @click="ui.toggleTheme()" :title="ui.isDark ? '切换日间' : '切换夜间'">
           <span class="material-symbols-outlined">contrast</span>
         </button>
@@ -108,6 +105,9 @@
           <button :class="{ active: cal.viewMode === 'week' }" @click="switchView('week')">周</button>
           <button :class="{ active: cal.viewMode === 'day' }" @click="switchView('day')">日</button>
           <button :class="{ active: cal.viewMode === 'list' }" @click="switchView('list')">列表</button>
+          <button class="add-task-btn" @click="showAddPanel = !showAddPanel" title="新建任务">
+            <span class="material-symbols-outlined">add</span>
+          </button>
         </div>
       </header>
 
@@ -366,8 +366,6 @@ onUnmounted(()=>friend.stopPolling())
 .icon-btn:hover { background: var(--accent-bg); }
 .icon-btn .material-symbols-outlined { font-size: 20px; }
 .logout-btn { font-size: 0.7rem; font-weight: 900; }
-.add-btn { border-color: var(--accent); }
-.add-btn .material-symbols-outlined { color: var(--accent); }
 
 /* ===== 滑出添加面板 ===== */
 .add-panel {
@@ -437,6 +435,11 @@ header { padding: 16px 20px 0; flex-shrink: 0; }
   background: transparent; color: var(--black); cursor: pointer; font-size: 0.72rem; font-weight: 600;
 }
 .view-switcher button.active { background: var(--accent); color: #000; border-color: var(--accent); }
+.add-task-btn {
+  margin-left: 4px; border-color: var(--accent) !important;
+}
+.add-task-btn .material-symbols-outlined { font-size: 18px; color: var(--accent); }
+.add-task-btn:hover { background: var(--accent-bg) !important; }
 
 /* ===== 周视图 ===== */
 #weekly-scroll-container { flex: 1; overflow-y: auto; overflow-x: hidden; margin: 0 12px 12px; border-radius: 20px; }
