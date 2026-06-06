@@ -605,7 +605,7 @@ header { padding: 16px 16px 8px; padding-top: calc(16px + env(safe-area-inset-to
 .header-main-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 .sidebar-toggle-btn { background: none; border: none; color: var(--black); font-size: 1.3rem; cursor: pointer; flex-shrink: 0; }
 #range-title {
-  flex: 1; margin: 0; font-size: 1.2rem; font-weight: 900;
+  flex: 1; margin: 0; font-size: 1.2rem; font-weight: 900; line-height: 40px;
   letter-spacing: 0.5px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
@@ -729,45 +729,57 @@ header { padding: 16px 16px 8px; padding-top: calc(16px + env(safe-area-inset-to
   header { padding: 12px 8px 4px; padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
   .header-main-row { gap: 4px; margin-bottom: 4px; }
   .header-controls-row { margin-bottom: 4px; }
-  #range-title { font-size: 1rem; letter-spacing: 0; }
-  .view-switcher button { padding: 5px 12px; font-size: 0.78rem; }
+  #range-title { font-size: 1.15rem; letter-spacing: 0; line-height: 1.4; }
+  .view-switcher button { padding: 5px 12px; font-size: 0.88rem; }
 
   /* 周视图 */
-  .weekly-grid { min-width: 600px; }
-  .time-gutter { width: 40px; }
-  .time-slot-label { font-size: 0.6rem; padding-right: 4px; }
-  .column-header { font-size: 0.72rem; }
+  .weekly-grid { min-width: 640px; }
+  .time-gutter { width: 42px; }
+  .time-slot-label { font-size: 0.7rem; padding-right: 4px; }
+  .column-header { font-size: 0.82rem; }
 
   /* 滑出面板全宽 */
   .add-panel { top: 50px; right: 4px; width: calc(100vw - 8px); }
 
   /* 事件卡片 */
-  .event-item { left: 2px; right: 2px; padding: 3px 5px; font-size: 0.7rem; }
-  .event-time-tag { font-size: 0.62rem; }
-  .event-name-text { font-size: 0.7rem; }
+  .event-item { left: 2px; right: 2px; padding: 4px 6px; font-size: 0.8rem; }
+  .event-time-tag { font-size: 0.7rem; }
+  .event-name-text { font-size: 0.78rem; }
 
   /* 日视图 */
   .day-view-container { margin: 0 4px 4px; padding: 8px; border-radius: 14px; }
-  .day-nav button { padding: 5px 10px; font-size: 0.78rem; }
-  .day-date { font-size: 0.85rem; }
+  .day-nav button { padding: 5px 10px; font-size: 0.85rem; }
+  .day-date { font-size: 0.9rem; }
 
   /* FAB */
   .fab { bottom: 28px; right: 24px; width: 48px; height: 48px; font-size: 1.5rem; }
+
+  /* 时间轴当前时间 */
+  .time-gutter-now { font-size: 0.7rem; }
+
+  /* 抽屉 */
+  .drawer-switcher button { font-size: 0.85rem; padding: 6px 12px; }
+  .drawer-username { font-size: 0.85rem; }
+  .drawer-action-btn { font-size: 0.8rem; }
 }
 
 @media (max-width: 540px) {
   header { padding: 10px 6px 4px; padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
-  #range-title { font-size: 0.88rem; }
-  .view-switcher button { padding: 5px 10px; font-size: 0.72rem; }
-  .weekly-grid { min-width: 520px; }
-  .time-gutter { width: 34px; }
-  .time-slot-label { font-size: 0.56rem; }
-  .column-header { font-size: 0.65rem; }
-  .day-column { min-width: 64px; }
-  .event-item { left: 1px; right: 1px; padding: 2px 4px; font-size: 0.66rem; }
-  .event-time-tag { font-size: 0.58rem; }
-  .event-name-text { font-size: 0.65rem; }
+  #range-title { font-size: 1.05rem; line-height: 1.4; }
+  .view-switcher button { padding: 5px 10px; font-size: 0.85rem; }
+  .weekly-grid { min-width: 560px; }
+  .time-gutter { width: 36px; }
+  .time-slot-label { font-size: 0.66rem; }
+  .column-header { font-size: 0.78rem; }
+  .day-column { min-width: 68px; }
+  .event-item { left: 1px; right: 1px; padding: 3px 5px; font-size: 0.75rem; }
+  .event-time-tag { font-size: 0.68rem; }
+  .event-name-text { font-size: 0.75rem; }
   .sidebar-drawer { width: 240px; }
   .fab { bottom: 28px; right: 24px; }
+  .time-gutter-now { font-size: 0.66rem; }
+  .drawer-switcher button { font-size: 0.82rem; padding: 6px 10px; }
+  .drawer-username { font-size: 0.82rem; }
+  .drawer-action-btn { font-size: 0.78rem; }
 }
 </style>
