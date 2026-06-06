@@ -46,12 +46,15 @@
             <button class="add-panel-close" @click="showSettings = false">&times;</button>
           </div>
           <div class="add-panel-body">
-            <img :src="settingsPreview || defaultAvatar" class="settings-avatar" @click="$refs.avatarInput?.click()" title="点击更换头像" />
+            <div class="avatar-crop-box" @click="$refs.avatarInput?.click()" title="点击更换头像">
+              <img :src="settingsPreview || defaultAvatar" class="settings-avatar" />
+              <span class="material-symbols-outlined crop-icon">edit</span>
+            </div>
             <input ref="avatarInput" type="file" accept="image/*" hidden @change="onAvatarFile" />
             <label>头像</label>
             <div class="settings-row">
-              <span class="settings-hint" style="flex:1">点击头像或选择图片文件上传</span>
-              <button class="save-btn" @click="$refs.avatarInput?.click()">选择图片</button>
+              <button class="f-btn" @click="$refs.avatarInput?.click()">选择图片</button>
+              <button v-if="settingsPreview !== auth.avatarUrl && settingsPreview !== defaultAvatar" class="save-btn" @click="doUploadAvatar">确认上传</button>
             </div>
             <label>用户名</label>
             <div class="settings-row">
@@ -293,16 +296,38 @@ watch(showSettings, v => {
   }
 })
 
+const avatarFileData = ref<string | null>(null)
+
 function onAvatarFile(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
   const reader = new FileReader()
-  reader.onload = async () => {
-    const base64 = reader.result as string
-    settingsPreview.value = base64
-    await auth.uploadAvatar(base64)
+  reader.onload = () => {
+    // 用 canvas 裁剪成 1:1
+    const img = new Image()
+    img.onload = () => {
+      const size = Math.min(img.width, img.height)
+      const sx = (img.width - size) / 2
+      const sy = (img.height - size) / 2
+      const canvas = document.createElement('canvas')
+      canvas.width = 256
+      canvas.height = 256
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, 256, 256)
+      const croppedBase64 = canvas.toDataURL('image/png')
+      settingsPreview.value = croppedBase64
+      avatarFileData.value = croppedBase64
+    }
+    img.src = reader.result as string
   }
   reader.readAsDataURL(file)
+}
+
+async function doUploadAvatar() {
+  if (!avatarFileData.value) return
+  await auth.uploadAvatar(avatarFileData.value)
+  avatarFileData.value = null
+  ui.showToast('头像已更新')
 }
 
 async function saveProfile() {
@@ -434,7 +459,17 @@ onUnmounted(()=>friend.stopPolling())
 .avatar-pixel { width: 40px; height: 40px; border-radius: 50%; border: var(--border-subtle); }
 
 /* 设置面板 */
-.settings-avatar { width: 64px; height: 64px; border-radius: 50%; border: var(--border-subtle); margin: 0 auto 10px; display: block; }
+.avatar-crop-box {
+  width: 80px; height: 80px; border-radius: 50%; border: 2px dashed var(--accent);
+  margin: 0 auto 12px; cursor: pointer; overflow: hidden; position: relative;
+}
+.avatar-crop-box:hover { border-style: solid; }
+.settings-avatar { width: 100%; height: 100%; object-fit: cover; display: block; }
+.crop-icon {
+  position: absolute; bottom: 0; right: 0; background: var(--accent); color: #000;
+  border-radius: 50%; font-size: 14px; padding: 2px; width: 20px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+}
 .settings-row { display: flex; gap: 8px; align-items: center; }
 .settings-user { font-weight: 700; font-size: 0.85rem; flex: 1; }
 .f-btn {
