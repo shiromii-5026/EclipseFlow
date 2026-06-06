@@ -23,8 +23,8 @@ Thumbs.db
 application-local.yml
 .env
 
-# AI assistant config
-CLAUDE.md
+# Personal notes
+我要干啥来着.txt
 
 # Python / OCR service
 __pycache__/
