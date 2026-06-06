@@ -435,7 +435,7 @@ header { padding: 16px 20px 0; flex-shrink: 0; }
 .view-switcher { display: flex; gap: 6px; }
 .view-switcher button {
   padding: 5px 16px; border-radius: 8px; border: var(--border-subtle);
-  background: transparent; color: var(--black); cursor: pointer; font-size: 0.72rem; font-weight: 600;
+  background: rgba(128,128,128,0.08); color: var(--black); cursor: pointer; font-size: 0.72rem; font-weight: 600;
 }
 .view-switcher button.active { background: var(--accent); color: #000; border-color: var(--accent); }
 .add-task-btn {
@@ -450,9 +450,10 @@ header { padding: 16px 20px 0; flex-shrink: 0; }
 #weekly-scroll-container::-webkit-scrollbar { width: 6px; }
 #weekly-scroll-container::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
 .weekly-grid { display: flex; min-width: 780px; min-height: 100%; }
-.time-gutter { width: 52px; flex-shrink: 0; border-right: 1px solid var(--grid-line); }
+.time-gutter { width: 52px; flex-shrink: 0; border-right: 1px solid var(--grid-line); position: sticky; left: 0; z-index: 6; background: var(--bg); }
+.time-gutter .column-header { background: var(--bg); }
 .time-slot-label { height: var(--hour-height); font-size: 0.58rem; display: flex; align-items: flex-start; justify-content: flex-end; padding-right: 6px; opacity: 0.35; }
-.column-header { height: var(--header-height); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; border-bottom: 1px solid var(--grid-line); }
+.column-header { height: var(--header-height); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; border-bottom: 1px solid var(--grid-line); position: sticky; top: 0; z-index: 5; background: var(--bg); }
 .column-header span { font-size: 0.58rem; opacity: 0.5; }
 .day-column { flex: 1; min-width: 100px; position: relative; border-right: 1px solid var(--grid-line); }
 .day-column.today { background: var(--today-highlight); }
