@@ -101,10 +101,12 @@
           <div class="acid-segment" />
           <div class="header-barcode" />
         </div>
-        <div class="view-switcher">
-          <button :class="{ active: cal.viewMode === 'week' }" @click="switchView('week')">周</button>
-          <button :class="{ active: cal.viewMode === 'day' }" @click="switchView('day')">日</button>
-          <button :class="{ active: cal.viewMode === 'list' }" @click="switchView('list')">列表</button>
+        <div class="view-switcher-row">
+          <div class="view-switcher">
+            <button :class="{ active: cal.viewMode === 'week' }" @click="switchView('week')">周</button>
+            <button :class="{ active: cal.viewMode === 'day' }" @click="switchView('day')">日</button>
+            <button :class="{ active: cal.viewMode === 'list' }" @click="switchView('list')">列表</button>
+          </div>
           <button class="add-task-btn" @click="showAddPanel = !showAddPanel" title="新建任务">
             <span class="material-symbols-outlined">add</span>
           </button>
@@ -429,17 +431,19 @@ header { padding: 16px 20px 0; flex-shrink: 0; }
 }
 .dark .header-barcode { opacity: 0.25; }
 
-.view-switcher { display: flex; gap: 6px; margin-bottom: 10px; }
+.view-switcher-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.view-switcher { display: flex; gap: 6px; }
 .view-switcher button {
   padding: 5px 16px; border-radius: 8px; border: var(--border-subtle);
   background: transparent; color: var(--black); cursor: pointer; font-size: 0.72rem; font-weight: 600;
 }
 .view-switcher button.active { background: var(--accent); color: #000; border-color: var(--accent); }
 .add-task-btn {
-  margin-left: 4px; border-color: var(--accent) !important;
+  padding: 5px 12px; border-radius: 8px; border: 1px solid var(--accent);
+  background: transparent; cursor: pointer; display: flex; align-items: center;
 }
 .add-task-btn .material-symbols-outlined { font-size: 18px; color: var(--accent); }
-.add-task-btn:hover { background: var(--accent-bg) !important; }
+.add-task-btn:hover { background: var(--accent-bg); }
 
 /* ===== 周视图 ===== */
 #weekly-scroll-container { flex: 1; overflow-y: auto; overflow-x: hidden; margin: 0 12px 12px; border-radius: 20px; }
