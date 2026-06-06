@@ -1,10 +1,12 @@
 package net.togogo.eclipseflowbackend.auth;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import net.togogo.eclipseflowbackend.dto.ApiResponse;
 import net.togogo.eclipseflowbackend.entity.Task;
 import net.togogo.eclipseflowbackend.mapper.TaskMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,7 +14,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 好友系统 + 私聊 + 共享日历
+ * 好友系统 + 私聊 + 共享日历。
+ * 好友添加/接受操作使用 @Transactional 确保双向插入的原子性。
  */
 @RestController
 @RequestMapping("/api/social")
@@ -24,18 +27,21 @@ public class SocialController {
     @Autowired private MessageMapper messageMapper;
     @Autowired private TaskMapper taskMapper;
 
+    /**
+     * 从 JWT 过滤器获取当前用户 ID。
+     * 过滤器已保证此属性一定存在且有效。
+     */
     private Long getUserId(HttpServletRequest req) {
-        Object uid = req.getAttribute("userId");
-        return uid != null ? (Long) uid : 1L;
+        return (Long) req.getAttribute("userId");
     }
 
     // ===== 好友管理 =====
 
     /** 搜索用户（按用户名模糊匹配） */
     @GetMapping("/search")
-    public List<Map<String, Object>> searchUsers(@RequestParam String q, HttpServletRequest req) {
+    public ApiResponse<List<Map<String, Object>>> searchUsers(@RequestParam String q, HttpServletRequest req) {
         Long me = getUserId(req);
-        return userMapper.selectList(
+        List<Map<String, Object>> results = userMapper.selectList(
             new LambdaQueryWrapper<User>().like(User::getUsername, q)
         ).stream().filter(u -> !u.getId().equals(me)).map(u -> {
             Map<String, Object> m = new HashMap<>();
@@ -43,6 +49,7 @@ public class SocialController {
             m.put("username", u.getUsername());
             return m;
         }).collect(Collectors.toList());
+        return ApiResponse.ok(results);
     }
 
     /** 发送好友申请 */
@@ -65,12 +72,12 @@ public class SocialController {
 
     /** 好友列表 */
     @GetMapping("/friends")
-    public List<Map<String, Object>> getFriends(HttpServletRequest req) {
+    public ApiResponse<List<Map<String, Object>>> getFriends(HttpServletRequest req) {
         Long me = getUserId(req);
         List<Friend> list = friendMapper.selectList(
             new LambdaQueryWrapper<Friend>().eq(Friend::getUserId, me).eq(Friend::getStatus, "accepted")
         );
-        return list.stream().map(f -> {
+        List<Map<String, Object>> result = list.stream().map(f -> {
             User u = userMapper.selectById(f.getFriendId());
             Map<String, Object> m = new HashMap<>();
             m.put("id", u.getId());
@@ -78,25 +85,32 @@ public class SocialController {
             m.put("calendarPublic", u.getCalendarPublic() != null && u.getCalendarPublic() == 1);
             return m;
         }).collect(Collectors.toList());
+        return ApiResponse.ok(result);
     }
 
     /** 待处理的好友申请（别人发给我的） */
     @GetMapping("/requests")
-    public List<Map<String, Object>> getRequests(HttpServletRequest req) {
+    public ApiResponse<List<Map<String, Object>>> getRequests(HttpServletRequest req) {
         Long me = getUserId(req);
         List<Friend> list = friendMapper.selectList(
             new LambdaQueryWrapper<Friend>().eq(Friend::getFriendId, me).eq(Friend::getStatus, "pending")
         );
-        return list.stream().map(f -> {
+        List<Map<String, Object>> result = list.stream().map(f -> {
             User u = userMapper.selectById(f.getUserId());
             Map<String, Object> m = new HashMap<>();
             m.put("id", f.getId());
             m.put("username", u.getUsername());
             return m;
         }).collect(Collectors.toList());
+        return ApiResponse.ok(result);
     }
 
-    /** 接受好友申请 */
+    /**
+     * 接受好友申请。
+     * 需要双向插入两条记录，使用 @Transactional 保证原子性：
+     * 如果第二条插入失败，第一条更新也会回滚。
+     */
+    @Transactional
     @PostMapping("/accept")
     public ResponseEntity<?> accept(@RequestBody Map<String, Long> body, HttpServletRequest req) {
         Long requestId = body.get("requestId");
@@ -128,14 +142,15 @@ public class SocialController {
 
     /** 查看好友日历 */
     @GetMapping("/friend-calendar/{friendId}")
-    public List<Task> friendCalendar(@PathVariable Long friendId, HttpServletRequest req) {
+    public ApiResponse<List<Task>> friendCalendar(@PathVariable Long friendId, HttpServletRequest req) {
         User friend = userMapper.selectById(friendId);
         if (friend == null || friend.getCalendarPublic() == null || friend.getCalendarPublic() == 0) {
-            return Collections.emptyList();
+            return ApiResponse.ok(Collections.emptyList());
         }
-        return taskMapper.selectList(
+        List<Task> tasks = taskMapper.selectList(
             new LambdaQueryWrapper<Task>().eq(Task::getUserId, friendId)
         );
+        return ApiResponse.ok(tasks);
     }
 
     // ===== 私聊 =====
@@ -146,6 +161,9 @@ public class SocialController {
         Long me = getUserId(req);
         Long to = Long.valueOf(body.get("receiverId").toString());
         String content = (String) body.get("content");
+        if (content == null || content.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "消息不能为空"));
+        }
         Message msg = new Message();
         msg.setSenderId(me); msg.setReceiverId(to); msg.setContent(content);
         messageMapper.insert(msg);
@@ -154,7 +172,7 @@ public class SocialController {
 
     /** 获取和某人的聊天记录 */
     @GetMapping("/messages/{friendId}")
-    public List<Map<String, Object>> getMessages(@PathVariable Long friendId, HttpServletRequest req) {
+    public ApiResponse<List<Map<String, Object>>> getMessages(@PathVariable Long friendId, HttpServletRequest req) {
         Long me = getUserId(req);
         List<Message> msgs = messageMapper.selectList(
             new LambdaQueryWrapper<Message>()
@@ -162,7 +180,7 @@ public class SocialController {
                          .or(o -> o.eq(Message::getSenderId, friendId).eq(Message::getReceiverId, me)))
                 .orderByAsc(Message::getCreatedAt)
         );
-        return msgs.stream().map(m -> {
+        List<Map<String, Object>> result = msgs.stream().map(m -> {
             Map<String, Object> mp = new HashMap<>();
             mp.put("id", m.getId());
             mp.put("senderId", m.getSenderId());
@@ -171,5 +189,6 @@ public class SocialController {
             mp.put("mine", m.getSenderId().equals(me));
             return mp;
         }).collect(Collectors.toList());
+        return ApiResponse.ok(result);
     }
 }

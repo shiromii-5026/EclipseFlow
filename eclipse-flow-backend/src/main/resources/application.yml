@@ -8,3 +8,12 @@ spring:
 mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# JWT 配置（生产环境通过环境变量覆盖）
+eclipse-flow:
+  jwt:
+    secret: ${JWT_SECRET:EclipseFlow-JWT-Secret-Key-2026-Must-Be-256-Bits-Long!!}
+    expiration-days: ${JWT_EXPIRATION_DAYS:7}
+  push:
+    vapid-public-key: ${VAPID_PUBLIC_KEY:BEfDYqG4eOMOiAeUNW3wfUzTPzSx1iBLgoODzGuAEoLwpsJh-VkPugQSvEY5Zu4zXZcnCUoWiaZppxWvuJECoU0}
+    vapid-private-key: ${VAPID_PRIVATE_KEY:MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgcx4Jm2fIekV_hWbalsBxCrcH0Q6r4kwrmK-3gn1nZ8WhRANCAARHw2KhuHjjDogHlDVt8H1M0z80sdYgS4KDg8xrgBKC8KbCYflZD7oEErxGOWbuM12XJwlKFommaacVr7iRAqFN}

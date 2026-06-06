@@ -21,6 +21,10 @@ Thumbs.db
 
 # Local config (contains secrets)
 application-local.yml
+.env
+
+# AI assistant config
+CLAUDE.md
 
 # Python / OCR service
 __pycache__/

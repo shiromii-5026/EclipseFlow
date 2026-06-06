@@ -1,17 +1,16 @@
 package net.togogo.eclipseflowbackend.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import net.togogo.eclipseflowbackend.entity.Task;
-import net.togogo.eclipseflowbackend.service.TaskService;
-import net.togogo.eclipseflowbackend.mapper.TaskMapper;
+import net.togogo.eclipseflowbackend.dto.ApiResponse;
 import net.togogo.eclipseflowbackend.dto.TaskTimeUpdateDto;
+import net.togogo.eclipseflowbackend.entity.Task;
+import net.togogo.eclipseflowbackend.mapper.TaskMapper;
+import net.togogo.eclipseflowbackend.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -24,61 +23,68 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
 
-    // 从 JWT 过滤器取当前用户 ID，无 token 时默认用 1（兼容旧数据）
+    /**
+     * 从 JWT 过滤器获取当前用户 ID。
+     * 过滤器已保证此属性一定存在且有效。
+     */
     private Long getUserId(HttpServletRequest request) {
-        Object uid = request.getAttribute("userId");
-        return uid != null ? (Long) uid : 1L;
+        return (Long) request.getAttribute("userId");
     }
 
     /**
      * 获取当前用户的所有任务
      */
     @GetMapping("/list")
-    public List<Task> getAllTasks(HttpServletRequest request) {
+    public ApiResponse<List<Task>> getAllTasks(HttpServletRequest request) {
         Long userId = getUserId(request);
-        return taskMapper.selectList(
+        List<Task> tasks = taskMapper.selectList(
             new LambdaQueryWrapper<Task>().eq(Task::getUserId, userId)
         );
+        return ApiResponse.ok(tasks);
     }
 
     /**
      * 新增任务，自动绑定当前用户
      */
     @PostMapping("/add")
-    public String addTask(@RequestBody Task task, HttpServletRequest request) {
+    public ApiResponse<Task> addTask(@RequestBody Task task, HttpServletRequest request) {
         task.setUserId(getUserId(request));
         boolean saved = taskService.save(task);
-        return saved ? "ok" : "fail";
+        if (!saved) {
+            return ApiResponse.error("任务保存失败");
+        }
+        return ApiResponse.ok("任务创建成功", task);
     }
 
     /**
      * 删除任务（仅自己的）
      */
     @DeleteMapping("/delete/{id}")
-    public String deleteTask(@PathVariable Long id, HttpServletRequest request) {
+    public ApiResponse<Void> deleteTask(@PathVariable Long id, HttpServletRequest request) {
         Long userId = getUserId(request);
         Task t = taskMapper.selectById(id);
-        if (t == null || !t.getUserId().equals(userId)) {
-            return "fail";
+        if (t == null) {
+            return ApiResponse.fail(404, "任务不存在");
+        }
+        if (!t.getUserId().equals(userId)) {
+            return ApiResponse.fail(403, "无权删除他人任务");
         }
         boolean removed = taskService.removeById(id);
-        return removed ? "ok" : "fail";
+        if (!removed) {
+            return ApiResponse.error("删除失败");
+        }
+        return ApiResponse.ok("删除成功", null);
     }
 
     /**
      * 更新任务时间/属性（拖拽、拉伸、编辑）
      */
     @PutMapping("/update-time")
-    public ResponseEntity<?> updateTaskTime(@RequestBody TaskTimeUpdateDto dto) {
-        try {
-            boolean success = taskService.updateTaskTime(dto);
-            if (success) {
-                return ResponseEntity.ok(Map.of("status", "success"));
-            } else {
-                return ResponseEntity.status(500).body(Map.of("status", "error"));
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(Map.of("status", "error", "message", e.getMessage()));
+    public ApiResponse<Void> updateTaskTime(@RequestBody TaskTimeUpdateDto dto) {
+        boolean success = taskService.updateTaskTime(dto);
+        if (!success) {
+            return ApiResponse.fail(400, "更新失败：任务不存在或参数无效");
         }
+        return ApiResponse.ok("更新成功", null);
     }
 }

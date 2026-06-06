@@ -1,0 +1,85 @@
+# EclipseFlow 一键部署
+# 启动：docker-compose up -d
+# 停止：docker-compose down
+# 查看日志：docker-compose logs -f
+
+version: "3.8"
+
+services:
+  # ===== MySQL 数据库 =====
+  mysql:
+    image: mysql:8.0
+    container_name: eclipseflow-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-123456}
+      MYSQL_DATABASE: eclipse_flow
+    ports:
+      - "3306:3306"
+    volumes:
+      # 初始化建表脚本（仅在数据库首次创建时执行）
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      # 数据持久化
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-123456}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  # ===== Spring Boot 后端 =====
+  backend:
+    build: ./eclipse-flow-backend
+    container_name: eclipseflow-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_USERNAME: root
+      DB_PASSWORD: ${DB_PASSWORD:-123456}
+      # JWT 密钥（生产环境务必修改！）
+      JWT_SECRET: ${JWT_SECRET:-EclipseFlow-JWT-Secret-Key-2026-Must-Be-256-Bits-Long!!}
+      JWT_EXPIRATION_DAYS: ${JWT_EXPIRATION_DAYS:-7}
+      # VAPID 推送密钥（生产环境务必修改！）
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-BEfDYqG4eOMOiAeUNW3wfUzTPzSx1iBLgoODzGuAEoLwpsJh-VkPugQSvEY5Zu4zXZcnCUoWiaZppxWvuJECoU0}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgcx4Jm2fIekV_hWbalsBxCrcH0Q6r4kwrmK-3gn1nZ8WhRANCAARHw2KhuHjjDogHlDVt8H1M0z80sdYgS4KDg8xrgBKC8KbCYflZD7oEErxGOWbuM12XJwlKFommaacVr7iRAqFN}
+      # 数据库连接（Docker 内部通过服务名 mysql 访问）
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/eclipse_flow?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
+    ports:
+      - "8080:8080"
+
+  # ===== Python OCR 服务 =====
+  ocr:
+    build: ./ocr-service
+    container_name: eclipseflow-ocr
+    restart: unless-stopped
+    environment:
+      OCR_PORT: "8000"
+      # AI API 密钥（通过环境变量覆盖，去掉源码中的硬编码）
+      ANTHROPIC_AUTH_TOKEN: ${ANTHROPIC_AUTH_TOKEN:-}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-https://api.deepseek.com/anthropic}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-deepseek-v4-pro}
+      KIMI_API_KEY: ${KIMI_API_KEY:-}
+    ports:
+      - "8000:8000"
+
+  # ===== Nginx 前端 + 反向代理 =====
+  nginx:
+    image: nginx:alpine
+    container_name: eclipseflow-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - ocr
+    ports:
+      - "80:80"
+    volumes:
+      # 前端静态文件直接挂载（开发时修改即时生效）
+      - ./front:/usr/share/nginx/html:ro
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  mysql-data:
+    driver: local

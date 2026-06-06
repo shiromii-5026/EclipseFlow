@@ -2,7 +2,7 @@
 // 离线缓存 + 推送通知
 // 策略：网络优先，失败时用缓存兜底
 
-const CACHE_NAME = 'eclipseflow-v2';
+const CACHE_NAME = 'eclipseflow-v3';
 const CACHE_URLS = [
     './',
     'index.html',
@@ -13,6 +13,7 @@ const CACHE_URLS = [
     'icon-192.png',
     'icon-512.png',
     'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap',
+    'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@100..900&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0',
     'https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js',
 ];
 

@@ -2,16 +2,38 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 1. 配置和全局状态
     // ==========================================
+    // 智能检测运行环境：
+    // - Docker/nginx: 使用相对路径（/api/tasks → nginx 反向代理）
+    // - 本地直接打开 HTML: 使用 localhost:8080
+    const isProxied = window.location.protocol !== 'file:'
+        && (!window.location.port || window.location.port === '80' || window.location.port === '443');
+
     const CONFIG = {
         HOUR_HEIGHT: 80,
         HEADER_HEIGHT: 60,
-        API_BASE: 'http://localhost:8080/api/tasks',
-        OCR_BASE: 'http://localhost:8000'
+        API_BASE: isProxied ? '/api/tasks' : 'http://localhost:8080/api/tasks',
+        OCR_BASE: isProxied ? '' : 'http://localhost:8000',
+        SOCIAL_BASE: isProxied ? '/api/social' : 'http://localhost:8080/api/social',
+        AUTH_BASE: isProxied ? '/api/auth' : 'http://localhost:8080/api/auth',
+        PUSH_BASE: isProxied ? '/api/push' : 'http://localhost:8080/api/push'
     };
+
+    // 移动端检测
+    const isMobile = () => window.matchMedia('(max-width: 780px)').matches;
 
     // 每次请求带上 JWT token
     const token = () => localStorage.getItem('eclipse_token') || '';
     const authHeaders = () => token() ? { 'Authorization': 'Bearer ' + token() } : {};
+
+    // 统一处理 401 未登录 → 跳转登录页
+    const handleResponse = async (response) => {
+        if (response.status === 401) {
+            localStorage.removeItem('eclipse_token');
+            window.location.href = 'login.html';
+            throw new Error('未登录');
+        }
+        return response;
+    };
 
     const state = {
         currentFocusDate: new Date(),   // 当前查看的日期
@@ -35,8 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
         async fetchTasks() {
             try {
                 const response = await fetch(`${CONFIG.API_BASE}/list`, { headers: authHeaders() });
+                await handleResponse(response);
 
-                const data = await response.json();
+                const result = await response.json();
+                // 兼容 ApiResponse 包装和裸数组
+                const data = Array.isArray(result) ? result : (result.data || []);
 
                 state.storage = {};
 
@@ -88,11 +113,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { ...authHeaders(), 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                await handleResponse(response);
 
                 if (response.ok) {
                     await this.fetchTasks();
                     return true;
                 } else {
+                    const err = await response.json().catch(() => ({}));
+                    alert(err.message || '保存失败');
                     return false;
                 }
             } catch (error) {
@@ -104,13 +132,15 @@ document.addEventListener('DOMContentLoaded', () => {
         async deleteTask(id) {
             try {
                 const response = await fetch(`${CONFIG.API_BASE}/delete/${id}`, { method: 'DELETE', headers: authHeaders() });
+                await handleResponse(response);
                 if (response.ok) {
                     await this.fetchTasks();
                 } else {
-                    alert("服务器删除失败");
+                    const err = await response.json().catch(() => ({}));
+                    alert(err.message || '服务器删除失败');
                 }
             } catch (error) {
-                // 网络挂了也没办法，静默处理
+                // 网络异常，静默处理（handleResponse 已处理 401）
             }
         },
 
@@ -143,6 +173,15 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAll() {
             this.renderMiniCalendar();
             this.renderWeeklyGrid();
+            // 如果移动端日视图/列表视图可见，也一并刷新
+            const dayContainer = document.getElementById('day-view-container');
+            if (dayContainer && !dayContainer.classList.contains('hidden')) {
+                this.renderDayView();
+            }
+            const listContainer = document.getElementById('list-view-container');
+            if (listContainer && !listContainer.classList.contains('hidden')) {
+                this.renderListView();
+            }
         },
 
         renderMiniCalendar() {
@@ -177,6 +216,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 dayEl.addEventListener('click', () => {
                     state.currentFocusDate = dateObj;
                     this.renderAll();
+                    // 移动端：选完日期后关闭侧边栏抽屉
+                    if (isMobile()) closeSidebarDrawer();
                     // 滚动到当天第一个任务
                     setTimeout(() => {
                         const col = document.querySelector(`.day-column[data-date="${dateStr}"]`);
@@ -325,6 +366,136 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
 
+        renderDayView() {
+            const grid = document.getElementById('day-grid');
+            const label = document.getElementById('day-date-label');
+            if (!grid || !label) return;
+
+            const d = state.currentFocusDate;
+            const weekNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            label.textContent = `${d.getMonth() + 1}月${d.getDate()}日 ${weekNames[d.getDay()]}`;
+
+            const dateStr = getCSTDateStr(d);
+            const tasks = (state.storage[dateStr] || []).filter(t => t.taskType !== 'DDL' || t.duration === 0);
+
+            grid.innerHTML = '';
+
+            for (let h = 0; h < 24; h++) {
+                const slot = document.createElement('div');
+                slot.className = 'day-slot';
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'day-slot-label';
+                labelDiv.textContent = `${h}:00`;
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'day-slot-content';
+                slot.appendChild(labelDiv);
+                slot.appendChild(contentDiv);
+                grid.appendChild(slot);
+            }
+
+            // 今日红色时间线
+            const todayStr = getCSTDateStr(new Date());
+            if (dateStr === todayStr) {
+                const now = new Date();
+                const topPx = (now.getHours() + now.getMinutes() / 60) * CONFIG.HOUR_HEIGHT;
+                const line = document.createElement('div');
+                line.className = 'current-time-line';
+                line.style.cssText = `position:absolute;top:${topPx}px;left:50px;right:0;z-index:10;`;
+                grid.appendChild(line);
+            }
+
+            tasks.forEach(t => {
+                if (!t.time) return;
+                const [h, m] = t.time.split(':').map(Number);
+                const topPx = (h + m / 60) * CONFIG.HOUR_HEIGHT;
+                const heightPx = Math.max((t.duration || 0.5) * CONFIG.HOUR_HEIGHT, 20);
+
+                const card = document.createElement('div');
+                card.className = 'day-task-card';
+                card.style.top = `${topPx}px`;
+                card.style.height = `${heightPx}px`;
+                card.style.setProperty('--task-color', t.color || '#b5d528aa');
+                card.textContent = `${t.time.substring(0, 5)} ${t.name}`;
+                card.dataset.taskId = t.id;
+                card.dataset.date = dateStr;
+
+                // 点击编辑
+                card.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openQuickEditModal(t, dateStr);
+                });
+
+                // 长按上下文菜单
+                let lpTimer;
+                card.addEventListener('touchstart', (e) => {
+                    lpTimer = setTimeout(() => {
+                        if (navigator.vibrate) navigator.vibrate(15);
+                        showMobileContextMenu(t, dateStr, card);
+                    }, 500);
+                });
+                card.addEventListener('touchend', () => clearTimeout(lpTimer));
+                card.addEventListener('touchmove', () => clearTimeout(lpTimer));
+
+                grid.appendChild(card);
+            });
+        },
+
+        renderListView() {
+            const container = document.getElementById('task-list');
+            const label = document.getElementById('list-range-label');
+            if (!container) return;
+
+            // 计算本周一
+            const temp = new Date(state.currentFocusDate);
+            const dayIdx = temp.getDay();
+            const diff = temp.getDate() - (dayIdx === 0 ? 6 : dayIdx - 1);
+            const monday = new Date(temp.getFullYear(), temp.getMonth(), diff);
+
+            const allTasks = [];
+            for (let i = 0; i < 7; i++) {
+                const cur = new Date(monday);
+                cur.setDate(monday.getDate() + i);
+                const key = getCSTDateStr(cur);
+                const tasks = state.storage[key] || [];
+                tasks.forEach(t => {
+                    allTasks.push({ ...t, _date: key, _dayOffset: i });
+                });
+            }
+
+            allTasks.sort((a, b) => {
+                if (a._date !== b._date) return a._date.localeCompare(b._date);
+                return (a.time || '00:00').localeCompare(b.time || '00:00');
+            });
+
+            const weekNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+            if (label) label.textContent = `本周任务 (${allTasks.length})`;
+
+            if (allTasks.length === 0) {
+                container.innerHTML = '<div style="text-align:center;opacity:0.4;padding:40px;">暂无任务</div>';
+                return;
+            }
+
+            container.innerHTML = allTasks.map(t => `
+                <div class="task-list-item" data-task-id="${t.id}" data-date="${t._date}">
+                    <div class="task-list-color" style="background:${t.color || '#b5d528aa'}"></div>
+                    <div class="task-list-info">
+                        <span class="task-list-name">${t.name}</span>
+                        <span class="task-list-meta">${t._date} ${weekNames[t._dayOffset]} ${t.time ? t.time.substring(0, 5) : ''}</span>
+                    </div>
+                    <span class="task-list-time">${t.duration > 0 ? t.duration + 'h' : 'DDL'}</span>
+                </div>
+            `).join('');
+
+            container.querySelectorAll('.task-list-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const taskId = item.dataset.taskId;
+                    const dateStr = item.dataset.date;
+                    const task = (state.storage[dateStr] || []).find(t => String(t.id) === String(taskId));
+                    if (task) openQuickEditModal(task, dateStr);
+                });
+            });
+        },
+
         showToast(message) {
             let toast = document.querySelector('.save-toast');
             if (!toast) {
@@ -371,12 +542,153 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             });
+
+            // 移动端：点击任务卡片 = 快捷编辑（替代双击）
+            grid.addEventListener('click', (e) => {
+                if (!isMobile()) return;
+                if (e.target.classList.contains('del-btn-mini') || e.target.classList.contains('ddl-del')) return;
+                const item = e.target.closest('.event-item');
+                if (!item) return;
+                const taskId = item.getAttribute('data-task-id');
+                const dateStr = item.closest('.day-column')?.dataset.date;
+                if (taskId && dateStr && state.storage[dateStr]) {
+                    const task = state.storage[dateStr].find(t => String(t.id) === String(taskId));
+                    if (task) openQuickEditModal(task, dateStr);
+                }
+            });
+
+            // 移动端：长按任务 = 上下文菜单
+            if (isMobile()) {
+                let longPressTimer = null;
+                grid.addEventListener('touchstart', (e) => {
+                    const item = e.target.closest('.event-item');
+                    if (!item) return;
+                    longPressTimer = setTimeout(() => {
+                        const taskId = item.getAttribute('data-task-id');
+                        const dateStr = item.closest('.day-column')?.dataset.date;
+                        if (taskId && dateStr && state.storage[dateStr]) {
+                            const task = state.storage[dateStr].find(t => String(t.id) === String(taskId));
+                            if (task) {
+                                if (navigator.vibrate) navigator.vibrate(15);
+                                showMobileContextMenu(task, dateStr, item);
+                            }
+                        }
+                    }, 500);
+                }, { passive: true });
+                grid.addEventListener('touchend', () => {
+                    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+                });
+                grid.addEventListener('touchmove', () => {
+                    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+                });
+            }
+        }
+
+        // 侧边栏抽屉开关
+        const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+        if (sidebarToggleBtn) {
+            sidebarToggleBtn.addEventListener('click', openSidebarDrawer);
+        }
+        const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+        if (sidebarBackdrop) {
+            sidebarBackdrop.addEventListener('click', closeSidebarDrawer);
+        }
+
+        // 视图切换器
+        const viewSwitcher = document.getElementById('view-switcher');
+        if (viewSwitcher) {
+            viewSwitcher.addEventListener('click', (e) => {
+                const btn = e.target.closest('.view-switch-btn');
+                if (!btn) return;
+                showView(btn.dataset.view);
+            });
+        }
+
+        // 日视图导航按钮
+        const dayPrevBtn = document.getElementById('day-prev-btn');
+        const dayNextBtn = document.getElementById('day-next-btn');
+        if (dayPrevBtn) {
+            dayPrevBtn.addEventListener('click', () => {
+                state.currentFocusDate.setDate(state.currentFocusDate.getDate() - 1);
+                state.currentFocusDate = new Date(state.currentFocusDate);
+                ui.renderDayView();
+                ui.renderMiniCalendar();
+            });
+        }
+        if (dayNextBtn) {
+            dayNextBtn.addEventListener('click', () => {
+                state.currentFocusDate.setDate(state.currentFocusDate.getDate() + 1);
+                state.currentFocusDate = new Date(state.currentFocusDate);
+                ui.renderDayView();
+                ui.renderMiniCalendar();
+            });
+        }
+
+        // 日视图左右滑动切换日期
+        const dayContainer = document.getElementById('day-view-container');
+        if (dayContainer) {
+            let touchStartX = 0, touchStartY = 0;
+            dayContainer.addEventListener('touchstart', (e) => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+            dayContainer.addEventListener('touchend', (e) => {
+                const dx = e.changedTouches[0].clientX - touchStartX;
+                const dy = e.changedTouches[0].clientY - touchStartY;
+                // 水平位移 > 60px 且大于垂直位移时触发
+                if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy)) {
+                    const d = new Date(state.currentFocusDate);
+                    d.setDate(d.getDate() + (dx < 0 ? 1 : -1));
+                    state.currentFocusDate = d;
+                    ui.renderDayView();
+                    ui.renderMiniCalendar();
+                }
+            });
+        }
+
+        // 底部导航
+        const bottomNav = document.getElementById('bottom-nav');
+        if (bottomNav) {
+            bottomNav.addEventListener('click', (e) => {
+                const item = e.target.closest('.bottom-nav-item');
+                if (!item) return;
+                const tab = item.dataset.tab;
+                bottomNav.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
+                item.classList.add('active');
+                switch (tab) {
+                    case 'schedule': showView('week'); break;
+                    case 'day': showView('day'); break;
+                    case 'friends':
+                        openSidebarDrawer();
+                        setTimeout(() => {
+                            document.getElementById('friends-panel')?.scrollIntoView({ behavior: 'smooth' });
+                        }, 350);
+                        break;
+                    case 'settings':
+                        openSidebarDrawer();
+                        break;
+                }
+            });
+        }
+
+        // FAB 快速添加
+        const fab = document.getElementById('fab-add-task');
+        if (fab) {
+            fab.addEventListener('click', () => {
+                if (isMobile()) openMobileTaskSheet();
+            });
         }
 
         const themeBtn = document.getElementById('theme-btn');
         if (themeBtn) {
             themeBtn.addEventListener('click', () => {
                 document.body.classList.toggle('dark-mode');
+                const isDark = document.body.classList.contains('dark-mode');
+                localStorage.setItem('eclipse_theme', isDark ? 'dark' : 'light');
+                const metaTheme = document.querySelector('meta[name="theme-color"]');
+                if (metaTheme) {
+                    metaTheme.content = isDark ? '#070b1a' : '#b5d528';
+                }
             });
         }
 
@@ -815,6 +1127,231 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
+    // 4.5 移动端核心函数
+    // ==========================================
+
+    function showView(viewName) {
+        const weekContainer = document.getElementById('weekly-scroll-container');
+        const dayContainer = document.getElementById('day-view-container');
+        const listContainer = document.getElementById('list-view-container');
+        const viewBtns = document.querySelectorAll('.view-switch-btn');
+
+        [weekContainer, dayContainer, listContainer].forEach(c => {
+            if (c) c.classList.add('hidden');
+        });
+
+        viewBtns.forEach(b => {
+            b.classList.toggle('active', b.dataset.view === viewName);
+        });
+
+        switch (viewName) {
+            case 'week':
+                if (weekContainer) weekContainer.classList.remove('hidden');
+                break;
+            case 'day':
+                if (dayContainer) {
+                    dayContainer.classList.remove('hidden');
+                    ui.renderDayView();
+                }
+                break;
+            case 'list':
+                if (listContainer) {
+                    listContainer.classList.remove('hidden');
+                    ui.renderListView();
+                }
+                break;
+        }
+
+        // 同步底部导航选中态
+        const tabMap = { week: 'schedule', day: 'day', list: 'schedule' };
+        const targetTab = tabMap[viewName];
+        document.querySelectorAll('.bottom-nav-item').forEach(item => {
+            item.classList.toggle('active', item.dataset.tab === targetTab);
+        });
+    }
+
+    function openSidebarDrawer() {
+        const sidebar = document.querySelector('.sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (sidebar) sidebar.classList.add('open');
+        if (backdrop) backdrop.classList.add('visible');
+    }
+
+    function closeSidebarDrawer() {
+        const sidebar = document.querySelector('.sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (sidebar) sidebar.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('visible');
+    }
+
+    function openMobileTaskSheet() {
+        const existing = document.getElementById('mobile-task-sheet');
+        if (existing) existing.remove();
+
+        const todayStr = getCSTDateStr(new Date());
+        const hourOpts = Array.from({ length: 24 }, (_, i) =>
+            `<option value="${String(i).padStart(2, '0')}" ${i === 9 ? 'selected' : ''}>${String(i).padStart(2, '0')}</option>`
+        ).join('');
+        const minOpts = Array.from({ length: 12 }, (_, i) =>
+            `<option value="${String(i * 5).padStart(2, '0')}">${String(i * 5).padStart(2, '0')}</option>`
+        ).join('');
+
+        const sheetHtml = `
+            <div id="mobile-task-sheet" class="quick-edit-overlay" style="align-items:flex-end;">
+                <div class="quick-edit-panel" style="width:100%;max-width:480px;border-radius:24px 24px 0 0;padding-bottom:calc(20px + env(safe-area-inset-bottom, 0px));">
+                    <div class="quick-edit-header">
+                        <span class="quick-edit-title">新建任务</span>
+                        <button id="mobile-task-cancel" class="quick-close-btn">✕</button>
+                    </div>
+                    <div class="quick-edit-body">
+                        <input id="mobile-task-name" class="quick-input" placeholder="任务内容">
+                        <input id="mobile-task-date" class="quick-input" type="date" value="${todayStr}">
+                        <div style="display:flex;gap:8px;">
+                            <select id="mobile-task-hour" class="quick-input" style="flex:1;">${hourOpts}</select>
+                            <span style="align-self:center;font-weight:900;">:</span>
+                            <select id="mobile-task-min" class="quick-input" style="flex:1;">${minOpts}</select>
+                        </div>
+                        <select id="mobile-task-color" class="quick-input">
+                            <option value="#b5d528aa">翠绿</option>
+                            <option value="#f89828aa">鲜橙</option>
+                            <option value="#5eb8e8">天蓝</option>
+                            <option value="#f07880">赤红</option>
+                            <option value="#b088e0aa">淡紫</option>
+                        </select>
+                    </div>
+                    <div class="quick-edit-footer">
+                        <button id="mobile-task-save" class="quick-save-btn">保存</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', sheetHtml);
+
+        document.getElementById('mobile-task-cancel').onclick = () =>
+            document.getElementById('mobile-task-sheet').remove();
+
+        document.getElementById('mobile-task-save').onclick = async () => {
+            const name = document.getElementById('mobile-task-name').value.trim();
+            const date = document.getElementById('mobile-task-date').value;
+            const hour = document.getElementById('mobile-task-hour').value;
+            const min = document.getElementById('mobile-task-min').value;
+            const color = document.getElementById('mobile-task-color').value;
+
+            if (!name || !date) { alert('请填写任务名称和日期'); return; }
+
+            const taskData = {
+                taskName: name,
+                taskDate: date,
+                startTime: `${hour}:${min}`,
+                duration: 1,
+                deadline: null,
+                taskType: 'BLOCK',
+                color: color
+            };
+            taskData.deadline = `${hour}:${min}:00`;
+
+            const success = await api.saveTask(taskData);
+            if (success) {
+                document.getElementById('mobile-task-sheet').remove();
+            }
+        };
+    }
+
+    function showMobileContextMenu(task, dateStr, anchorElement) {
+        document.getElementById('mobile-context-menu')?.remove();
+
+        const backdrop = document.createElement('div');
+        backdrop.className = 'mobile-context-backdrop';
+        backdrop.id = 'mobile-context-backdrop';
+
+        const sheet = document.createElement('div');
+        sheet.className = 'mobile-context-sheet';
+        sheet.id = 'mobile-context-menu';
+        sheet.innerHTML = `
+            <button class="mobile-context-item" data-action="edit">编辑任务</button>
+            <button class="mobile-context-item" data-action="time">调整时间</button>
+            <button class="mobile-context-item" data-action="color">更换颜色</button>
+            <div class="context-divider"></div>
+            <button class="mobile-context-item danger" data-action="delete">删除任务</button>
+        `;
+
+        const close = () => {
+            backdrop.remove();
+            sheet.remove();
+        };
+
+        backdrop.addEventListener('click', close);
+
+        sheet.querySelectorAll('.mobile-context-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const action = btn.dataset.action;
+                close();
+                switch (action) {
+                    case 'edit':
+                        openQuickEditModal(task, dateStr);
+                        break;
+                    case 'time':
+                        openTimePickerModal(task, dateStr);
+                        break;
+                    case 'color':
+                        openQuickEditModal(task, dateStr);
+                        break;
+                    case 'delete':
+                        if (confirm('确定删除这个任务吗？')) {
+                            api.deleteTask(task.id);
+                        }
+                        break;
+                }
+            });
+        });
+
+        document.body.appendChild(backdrop);
+        document.body.appendChild(sheet);
+    }
+
+    function openTimePickerModal(task, dateStr) {
+        const modal = document.getElementById('time-picker-modal');
+        if (!modal) return;
+
+        document.getElementById('time-picker-date').value = dateStr;
+        document.getElementById('time-picker-start').value = (task.time || task.startTime || '09:00').substring(0, 5);
+        document.getElementById('time-picker-duration').value = task.duration || 1;
+
+        modal.classList.remove('hidden');
+
+        document.getElementById('time-picker-cancel').onclick = () => modal.classList.add('hidden');
+
+        document.getElementById('time-picker-save').onclick = async () => {
+            const newDate = document.getElementById('time-picker-date').value;
+            const newStart = document.getElementById('time-picker-start').value;
+            const newDuration = parseFloat(document.getElementById('time-picker-duration').value);
+
+            if (!newDate || !newStart) return;
+
+            task.time = newStart;
+            task.startTime = newStart;
+            task.duration = newDuration;
+
+            // 日期变了就挪到新日期
+            const oldDate = Object.keys(state.storage).find(k =>
+                state.storage[k].some(t2 => String(t2.id) === String(task.id))
+            );
+            if (oldDate && oldDate !== newDate) {
+                const idx = state.storage[oldDate].findIndex(t2 => String(t2.id) === String(task.id));
+                if (idx !== -1) {
+                    const [moved] = state.storage[oldDate].splice(idx, 1);
+                    if (!state.storage[newDate]) state.storage[newDate] = [];
+                    state.storage[newDate].push(moved);
+                }
+            }
+
+            await api.updateTaskTime(task.id, newDate, newStart);
+            ui.renderAll();
+            modal.classList.add('hidden');
+        };
+    }
+
+    // ==========================================
     // 5. 启动：拉数据、绑事件、开交互
     // ==========================================
     function init() {
@@ -829,6 +1366,18 @@ document.addEventListener('DOMContentLoaded', () => {
         bindEvents();
         initOcrUpload();
         initInteractJS();
+
+        // FAB 显示/隐藏管理
+        const fab = document.getElementById('fab-add-task');
+        const mediaQuery = window.matchMedia('(max-width: 780px)');
+        const updateFabVisibility = () => {
+            if (fab) {
+                fab.classList.toggle('visible', mediaQuery.matches);
+            }
+        };
+        updateFabVisibility();
+        mediaQuery.addEventListener('change', updateFabVisibility);
+
         // 滚动到当前时间位置（调两次是为了等 DOM 就绪）
         setTimeout(() => { scrollToCurrentTime(); }, 100);
         scrollToCurrentTime();
@@ -838,9 +1387,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 6. 拖拽和拉伸，底层用 Interact.js
     // ==========================================
     function initInteractJS() {
-        if (typeof interact === 'undefined') {
-            return;
-        }
+        if (typeof interact === 'undefined') return;
+        if (isMobile()) return; // 移动端禁用拖拽，改用时间选择弹窗
 
         // BLOCK 任务块：可以拖拽，也可以拉底部/顶部手柄调时长
         interact('.event-item:not(.ddl-line-task)')
@@ -1215,7 +1763,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 applicationServerKey: 'BEfDYqG4eOMOiAeUNW3wfUzTPzSx1iBLgoODzGuAEoLwpsJh-VkPugQSvEY5Zu4zXZcnCUoWiaZppxWvuJECoU0',
             });
             const subJson = sub.toJSON();
-            await fetch('http://localhost:8080/api/push/subscribe', {
+            await fetch(`${CONFIG.PUSH_BASE}/subscribe`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(subJson),
@@ -1231,7 +1779,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { updateCountdown(); }, 1000);
 
     // ===== 好友系统 + 聊天 =====
-    const socialApi = (path, opts = {}) => fetch(`http://localhost:8080/api/social${path}`, { ...opts, headers: { ...authHeaders(), ...(opts.headers || {}) } }).then(r => r.json());
+    const socialApi = (path, opts = {}) =>
+        fetch(`${CONFIG.SOCIAL_BASE}${path}`, { ...opts, headers: { ...authHeaders(), ...(opts.headers || {}) } })
+        .then(r => { if (r.status === 401) { localStorage.removeItem('eclipse_token'); window.location.href = 'login.html'; throw new Error('未登录'); } return r.json(); })
+        .then(data => data && data.data !== undefined ? data.data : data); // 兼容 ApiResponse 和裸响应
     let chatFriendId = null;
 
     function refreshFriends() {
@@ -1297,8 +1848,9 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshFriends();
 
     function viewFriendCalendar(friendId) {
-        fetch(`http://localhost:8080/api/social/friend-calendar/${friendId}`, { headers: authHeaders() })
-            .then(r => r.json()).then(tasks => {
+        fetch(`${CONFIG.SOCIAL_BASE}/friend-calendar/${friendId}`, { headers: authHeaders() })
+            .then(r => r.json()).then(result => {
+                const tasks = Array.isArray(result) ? result : (result.data || []);
                 if (!tasks || tasks.length === 0) { alert('好友未公开日历或无任务'); return; }
                 const dateKey = tasks[0]?.taskDate || getCSTDateStr(new Date());
                 state.storage[dateKey] = tasks.map(bt => ({

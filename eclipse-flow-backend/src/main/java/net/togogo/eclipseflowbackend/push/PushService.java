@@ -7,6 +7,7 @@ import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.Subscription;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -21,20 +22,28 @@ import java.util.List;
 /**
  * 推送服务：管理订阅列表，定时检查任务并推送提醒。
  * 每 2 分钟扫描一次，对 5 分钟内即将开始的任务推送到所有已订阅浏览器。
+ * <p>
+ * VAPID 密钥从配置文件读取，生产环境通过环境变量覆盖。
  */
 @Service
 @EnableScheduling
 public class PushService {
 
-    // VAPID 密钥对，和前端 app.js 里的公钥配对
-    private static final String VAPID_PUBLIC_KEY = "BEfDYqG4eOMOiAeUNW3wfUzTPzSx1iBLgoODzGuAEoLwpsJh-VkPugQSvEY5Zu4zXZcnCUoWiaZppxWvuJECoU0";
-    private static final String VAPID_PRIVATE_KEY = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgcx4Jm2fIekV_hWbalsBxCrcH0Q6r4kwrmK-3gn1nZ8WhRANCAARHw2KhuHjjDogHlDVt8H1M0z80sdYgS4KDg8xrgBKC8KbCYflZD7oEErxGOWbuM12XJwlKFommaacVr7iRAqFN";
+    private final String vapidPublicKey;
+    private final String vapidPrivateKey;
 
     // 订阅列表（内存存储，服务重启后需重新订阅）
     private final List<Subscription> subscriptions = new ArrayList<>();
 
     @Autowired
     private TaskMapper taskMapper;
+
+    public PushService(
+            @Value("${eclipse-flow.push.vapid-public-key}") String vapidPublicKey,
+            @Value("${eclipse-flow.push.vapid-private-key}") String vapidPrivateKey) {
+        this.vapidPublicKey = vapidPublicKey;
+        this.vapidPrivateKey = vapidPrivateKey;
+    }
 
     @PostConstruct
     public void init() {
@@ -93,8 +102,8 @@ public class PushService {
             try {
                 Notification notification = new Notification(sub, payload);
                 nl.martijndwars.webpush.PushService sender = new nl.martijndwars.webpush.PushService()
-                    .setPublicKey(VAPID_PUBLIC_KEY)
-                    .setPrivateKey(VAPID_PRIVATE_KEY)
+                    .setPublicKey(vapidPublicKey)
+                    .setPrivateKey(vapidPrivateKey)
                     .setSubject("mailto:eclipseflow@example.com");
                 sender.send(notification);
             } catch (Exception e) {
