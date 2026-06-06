@@ -435,12 +435,12 @@ header { padding: 16px 20px 0; flex-shrink: 0; }
 .view-switcher { display: flex; gap: 6px; }
 .view-switcher button {
   padding: 5px 16px; border-radius: 8px; border: var(--border-subtle);
-  background: rgba(128,128,128,0.08); color: var(--black); cursor: pointer; font-size: 0.72rem; font-weight: 600;
+  background: rgba(128,128,128,0.15); color: var(--black); cursor: pointer; font-size: 0.72rem; font-weight: 600;
 }
 .view-switcher button.active { background: var(--accent); color: #000; border-color: var(--accent); }
 .add-task-btn {
   padding: 5px 12px; border-radius: 8px; border: 1px solid var(--accent);
-  background: transparent; cursor: pointer; display: flex; align-items: center;
+  background: rgba(128,128,128,0.15); cursor: pointer; display: flex; align-items: center;
 }
 .add-task-btn .material-symbols-outlined { font-size: 18px; color: var(--accent); }
 .add-task-btn:hover { background: var(--accent-bg); }
