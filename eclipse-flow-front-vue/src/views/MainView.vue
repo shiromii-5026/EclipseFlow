@@ -524,7 +524,7 @@ onUnmounted(()=>{ friend.stopPolling(); if(timeTimer) clearInterval(timeTimer) }
 
 /* ===== 顶栏 ===== */
 .top-right-nav {
-  position: absolute; top: 12px; right: 16px; display: flex; align-items: center; gap: 8px; z-index: 30;
+  position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; display: flex; align-items: center; gap: 8px; z-index: 30;
 }
 .icon-btn {
   width: 36px; height: 36px; border-radius: 50%; border: var(--border-subtle);
