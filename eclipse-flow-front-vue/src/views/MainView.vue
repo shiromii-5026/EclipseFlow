@@ -26,6 +26,13 @@
     <main class="main-content">
       <!-- 顶栏 -->
       <div class="top-right-nav">
+        <div class="user-meta-group">
+          <div class="user-text">
+            <span class="u-name">{{ auth.username || 'OPERATOR_01' }}</span>
+            <span class="u-status">在线 // 实时同步</span>
+          </div>
+          <img :src="`https://api.dicebear.com/7.x/pixel-art/svg?seed=${avatarSeed}`" alt="Avatar" class="avatar-pixel" />
+        </div>
         <button class="icon-btn" @click="showSettings = !showSettings" title="设置">
           <span class="material-symbols-outlined">settings</span>
         </button>
@@ -383,6 +390,11 @@ onUnmounted(()=>friend.stopPolling())
 }
 .icon-btn:hover { background: var(--accent-bg); }
 .icon-btn .material-symbols-outlined { font-size: 20px; }
+.user-meta-group { display: flex; align-items: center; gap: 10px; }
+.user-text { text-align: right; line-height: 1.3; }
+.u-name { font-weight: 900; font-size: 0.78rem; letter-spacing: 0.06em; display: block; }
+.u-status { font-size: 0.6rem; opacity: 0.45; }
+.avatar-pixel { width: 40px; height: 40px; border-radius: 50%; border: var(--border-subtle); }
 
 /* 设置面板 */
 .settings-avatar { width: 64px; height: 64px; border-radius: 50%; border: var(--border-subtle); margin: 0 auto 10px; display: block; }
