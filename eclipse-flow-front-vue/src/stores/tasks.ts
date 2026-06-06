@@ -29,7 +29,9 @@ export const useTaskStore = defineStore('tasks', () => {
   async function fetchTasks() {
     loading.value = true
     try {
+      console.log('[taskStore.fetchTasks] 开始拉取...')
       const tasks = await taskApi.fetchTasks()
+      console.log('[taskStore.fetchTasks] 拉取到任务数:', tasks.length)
       const map: Record<string, TaskCache[]> = {}
       for (const t of tasks) {
         const dateKey = t.taskDate
@@ -39,8 +41,8 @@ export const useTaskStore = defineStore('tasks', () => {
         }
       }
       storage.value = map
-    } catch {
-      // silently fail, keep stale data
+    } catch (e: any) {
+      console.error('[taskStore.fetchTasks] 失败:', e, e.message)
     } finally {
       loading.value = false
     }

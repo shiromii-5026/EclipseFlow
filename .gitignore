@@ -3,6 +3,9 @@
 .vscode/
 *.iml
 
+# Claude Code (local only, do not commit)
+CLAUDE.md
+
 # Dependencies
 node_modules/
 

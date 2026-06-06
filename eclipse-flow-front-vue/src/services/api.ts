@@ -29,9 +29,12 @@ async function handleResponse(resp: Response): Promise<Response> {
 // ===== 任务 API =====
 export const taskApi = {
   async fetchTasks(): Promise<TaskCache[]> {
+    console.log('[taskApi.fetchTasks] 发送 GET, BASE:', BASE)
     const resp = await fetch(`${BASE}/tasks/list`, { headers: authHeaders() })
+    console.log('[taskApi.fetchTasks] 响应状态:', resp.status)
     await handleResponse(resp)
     const result: ApiResponse<Task[]> = await resp.json()
+    console.log('[taskApi.fetchTasks] 响应体:', result)
     const data = Array.isArray(result) ? result : result.data || []
     return data.map((bt: Task) => ({
       id: bt.id,
@@ -49,11 +52,13 @@ export const taskApi = {
   },
 
   async saveTask(task: Record<string, unknown>): Promise<boolean> {
+    console.log('[taskApi.saveTask] 发送 POST, 数据:', task)
     const resp = await fetch(`${BASE}/tasks/add`, {
       method: 'POST',
       headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(task),
     })
+    console.log('[taskApi.saveTask] 响应状态:', resp.status)
     await handleResponse(resp)
     return resp.ok
   },
@@ -72,6 +77,17 @@ export const taskApi = {
       method: 'PUT',
       headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, date, startTime }),
+    })
+    await handleResponse(resp)
+    return resp.ok
+  },
+
+  /** 拖拽/拉伸后完整更新：时间、日期、时长、类型、截止时间等 */
+  async updateTask(data: Record<string, unknown>): Promise<boolean> {
+    const resp = await fetch(`${BASE}/tasks/update-time`, {
+      method: 'PUT',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
     })
     await handleResponse(resp)
     return resp.ok
@@ -113,11 +129,13 @@ export const authApi = {
   },
 
   async updateProfile(data: { username?: string }): Promise<{ username: string; avatarPath: string }> {
+    console.log('[authApi.updateProfile] 发送 PUT, BASE:', BASE, 'data:', data)
     const resp = await fetch(`${BASE}/auth/profile`, {
       method: 'PUT',
       headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
+    console.log('[authApi.updateProfile] 响应状态:', resp.status)
     await handleResponse(resp)
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({ error: '更新失败' }))
@@ -127,11 +145,13 @@ export const authApi = {
   },
 
   async uploadAvatar(base64: string): Promise<{ avatarPath: string }> {
+    console.log('[authApi.uploadAvatar] 发送 POST, 数据长度:', base64.length)
     const resp = await fetch(`${BASE}/auth/avatar`, {
       method: 'POST',
       headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: base64 }),
     })
+    console.log('[authApi.uploadAvatar] 响应状态:', resp.status)
     await handleResponse(resp)
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({ error: '上传失败' }))

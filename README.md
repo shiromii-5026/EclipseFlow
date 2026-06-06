@@ -6,7 +6,7 @@
 
 | 层 | 技术 |
 |---|------|
-| 前端 | 原生 HTML / CSS / JS + Interact.js 拖拽 |
+| 前端 | Vue 3 + Vite + TypeScript + Pinia + Interact.js 拖拽 |
 | 后端 | Java Spring Boot + MyBatis-Plus + Spring Security + JWT |
 | 数据库 | MySQL |
 | OCR | Python FastAPI + EasyOCR |
@@ -31,28 +31,29 @@
 
 ```
 EclipseFlow/
-├── front/                    # 前端
-│   ├── login.html            # 登录页
-│   ├── index.html            # 主应用
-│   ├── style.css
-│   ├── app.js
-│   ├── manifest.json         # PWA
-│   ├── service-worker.js     # 离线缓存 + 推送
-│   └── icon-*.png
-├── eclipse-flow-backend/     # Java 后端
+├── eclipse-flow-front-vue/    # Vue 3 前端（主力）
+│   ├── src/
+│   │   ├── views/             # 主页面
+│   │   ├── components/        # TaskCard, MiniCalendar, FriendPanel 等
+│   │   ├── stores/            # Pinia 状态管理
+│   │   ├── services/          # API 调用
+│   │   └── types/             # TypeScript 类型
+│   └── vite.config.ts
+├── eclipse-flow-backend/      # Java 后端
 │   └── src/main/java/net/togogo/eclipseflowbackend/
-│       ├── auth/             # 登录注册、JWT、好友、聊天
-│       ├── controller/       # TaskController
-│       ├── entity/           # Task
-│       ├── dto/              # TaskTimeUpdateDto
+│       ├── auth/              # 登录注册、JWT、好友、聊天
+│       ├── controller/        # TaskController
+│       ├── entity/            # Task
+│       ├── dto/               # TaskTimeUpdateDto
 │       ├── service/
 │       ├── mapper/
-│       └── push/             # Web Push 推送
-├── ocr-service/              # OCR + AI 微服务
+│       └── push/              # Web Push 推送
+├── front/                     # 原版原生 JS 前端（已弃用）
+├── ocr-service/               # OCR + AI 微服务
 │   ├── main.py
 │   ├── requirements.txt
 │   └── run.bat
-└── eclipse-flow-front-vue/   # Vue 脚手架（未启用）
+└── docker/                    # Docker 配置
 ```
 
 ## 快速启动
@@ -93,8 +94,14 @@ Kimi API Key 在 `main.py` 顶部的 `KIMI_KEY` 中配置。
 
 ### 4. 前端
 
-浏览器打开 `front/login.html`，登录后进入主页面。
-或者挂到任意静态服务，前端默认请求 `localhost:8080` 和 `localhost:8000`。
+```bash
+cd eclipse-flow-front-vue
+npm install --legacy-peer-deps
+npm run dev
+```
+
+开发服务器端口 5173，默认请求 `localhost:8080` 和 `localhost:8000`。
+生产构建：`npm run build`，产物在 `dist/` 目录。
 
 ## 默认账号
 

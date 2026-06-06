@@ -52,7 +52,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function updateProfile(newName: string) {
+    console.log('[authStore.updateProfile] 调用 API, newName:', newName)
     const result = await authApi.updateProfile({ username: newName || undefined })
+    console.log('[authStore.updateProfile] API 返回:', result)
     username.value = result.username
     avatarPath.value = result.avatarPath || ''
     localStorage.setItem('eclipse_username', result.username)
@@ -60,7 +62,9 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function uploadAvatar(base64: string) {
+    console.log('[authStore.uploadAvatar] 调用 API, 数据长度:', base64.length)
     const result = await authApi.uploadAvatar(base64)
+    console.log('[authStore.uploadAvatar] API 返回:', result)
     avatarPath.value = result.avatarPath
     localStorage.setItem('eclipse_avatar', result.avatarPath)
   }

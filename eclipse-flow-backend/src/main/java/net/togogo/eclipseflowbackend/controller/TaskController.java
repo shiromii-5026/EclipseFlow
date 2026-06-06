@@ -49,7 +49,9 @@ public class TaskController {
     @PostMapping("/add")
     public ApiResponse<Task> addTask(@RequestBody Task task, HttpServletRequest request) {
         task.setUserId(getUserId(request));
+        System.out.println("[addTask] 收到请求, userId=" + task.getUserId() + ", taskName=" + task.getTaskName() + ", taskDate=" + task.getTaskDate());
         boolean saved = taskService.save(task);
+        System.out.println("[addTask] 保存结果: " + saved + ", taskId=" + task.getId());
         if (!saved) {
             return ApiResponse.error("任务保存失败");
         }

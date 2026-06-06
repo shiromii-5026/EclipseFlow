@@ -105,6 +105,7 @@ public class AuthController {
     @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> body, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
+        System.out.println("[updateProfile] 收到请求, userId=" + userId + ", body=" + body);
         if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "未登录"));
 
         User user = userMapper.selectById(userId);
@@ -142,6 +143,7 @@ public class AuthController {
     @PostMapping("/avatar")
     public ResponseEntity<?> uploadAvatar(@RequestBody Map<String, String> body, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
+        System.out.println("[uploadAvatar] 收到请求, userId=" + userId + ", image数据长度=" + (body.get("image") != null ? body.get("image").length() : 0));
         if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "未登录"));
 
         String base64 = body.get("image");
