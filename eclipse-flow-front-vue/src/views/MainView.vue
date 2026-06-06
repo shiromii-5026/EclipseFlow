@@ -43,20 +43,6 @@
 
     <!-- ===== 主内容 ===== -->
     <main class="main-content">
-      <!-- 顶栏 -->
-      <div v-if="!ui.isMobile" class="top-right-nav">
-        <div class="user-meta-group">
-          <div class="user-text">
-            <span class="u-name">{{ auth.username || 'OPERATOR_01' }}</span>
-            <span class="u-status">在线 // 实时同步</span>
-          </div>
-          <img :src="auth.avatarUrl || defaultAvatar" alt="Avatar" class="avatar-pixel" />
-        </div>
-        <button class="icon-btn" @click="showSettings = !showSettings" title="设置">
-          <span class="material-symbols-outlined">settings</span>
-        </button>
-      </div>
-
       <!-- ===== 设置面板 ===== -->
       <div class="add-panel" :class="{ open: showSettings }" style="width:320px">
         <div class="add-panel-inner glass">
@@ -151,6 +137,16 @@
         <div class="header-main-row">
           <button v-if="ui.isMobile" class="sidebar-toggle-btn" @click="ui.openSidebar()">&#9776;</button>
           <h1 id="range-title">日程安排 // {{ formatDate(monday) }} - {{ formatDate(sunday) }}</h1>
+          <div v-if="!ui.isMobile" class="user-meta-group">
+            <div class="user-text">
+              <span class="u-name">{{ auth.username || 'OPERATOR_01' }}</span>
+              <span class="u-status">在线 // 实时同步</span>
+            </div>
+            <img :src="auth.avatarUrl || defaultAvatar" alt="Avatar" class="avatar-pixel" />
+          </div>
+          <button v-if="!ui.isMobile" class="icon-btn" @click="showSettings = !showSettings" title="设置">
+            <span class="material-symbols-outlined">settings</span>
+          </button>
         </div>
         <div class="header-controls-row">
           <div class="view-switcher">
@@ -522,10 +518,7 @@ onUnmounted(()=>{ friend.stopPolling(); if(timeTimer) clearInterval(timeTimer) }
 /* ===== 主内容 ===== */
 .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; min-width: 0; }
 
-/* ===== 顶栏 ===== */
-.top-right-nav {
-  position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; display: flex; align-items: center; gap: 8px; z-index: 30;
-}
+/* ===== 用户区（header 内） ===== */
 .icon-btn {
   width: 36px; height: 36px; border-radius: 50%; border: var(--border-subtle);
   background: var(--glass-bg); backdrop-filter: blur(12px); cursor: pointer;
@@ -606,10 +599,10 @@ onUnmounted(()=>{ friend.stopPolling(); if(timeTimer) clearInterval(timeTimer) }
 .ocr-status { font-size: 0.75rem; font-weight: 700; color: var(--accent); }
 
 /* ===== Header ===== */
-header { padding: 14px 16px 0; padding-top: calc(14px + env(safe-area-inset-top, 0px)); flex-shrink: 0; }
+header { padding: 16px 16px 8px; padding-top: calc(16px + env(safe-area-inset-top, 0px)); flex-shrink: 0; }
 
-/* 第一行: 标题 + 添加按钮 */
-.header-main-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+/* 第一行: 标题 + 用户区 */
+.header-main-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 .sidebar-toggle-btn { background: none; border: none; color: var(--black); font-size: 1.3rem; cursor: pointer; flex-shrink: 0; }
 #range-title {
   flex: 1; margin: 0; font-size: 1.2rem; font-weight: 900;
@@ -617,7 +610,7 @@ header { padding: 14px 16px 0; padding-top: calc(14px + env(safe-area-inset-top,
 }
 
 /* 第二行: 视图切换 */
-.header-controls-row { display: flex; align-items: center; margin-bottom: 4px; }
+.header-controls-row { display: flex; align-items: center; margin-bottom: 8px; }
 .view-switcher { display: flex; gap: 4px; }
 .view-switcher button {
   padding: 4px 14px; border-radius: 7px; border: var(--border-subtle);
@@ -733,14 +726,11 @@ header { padding: 14px 16px 0; padding-top: calc(14px + env(safe-area-inset-top,
 
 /* ===== 响应式 ===== */
 @media (max-width: 780px) {
-  header { padding: 12px 8px 0; padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
+  header { padding: 12px 8px 4px; padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
   .header-main-row { gap: 4px; margin-bottom: 4px; }
   .header-controls-row { margin-bottom: 4px; }
   #range-title { font-size: 1rem; letter-spacing: 0; }
   .view-switcher button { padding: 5px 12px; font-size: 0.78rem; }
-
-  /* 顶部右侧用户区隐藏 */
-  .top-right-nav { display: none; }
 
   /* 周视图 */
   .weekly-grid { min-width: 600px; }
@@ -766,7 +756,7 @@ header { padding: 14px 16px 0; padding-top: calc(14px + env(safe-area-inset-top,
 }
 
 @media (max-width: 540px) {
-  header { padding: 10px 6px 0; padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
+  header { padding: 10px 6px 4px; padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
   #range-title { font-size: 0.88rem; }
   .view-switcher button { padding: 5px 10px; font-size: 0.72rem; }
   .weekly-grid { min-width: 520px; }
