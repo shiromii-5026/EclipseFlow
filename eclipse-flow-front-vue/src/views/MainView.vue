@@ -167,11 +167,12 @@
           <div class="time-gutter">
             <div class="column-header">CST</div>
             <div v-for="h in 24" :key="h" class="time-slot-label">{{ h - 1 }}:00</div>
+            <div v-if="isCurrentWeek" class="time-gutter-now" :style="{ top: currentTimeTop + 'px' }">
+              {{ currentTimeLabel }}
+            </div>
           </div>
           <!-- 全宽当前时间线 -->
-          <div v-if="isCurrentWeek" class="current-time-line-full" :style="{ top: currentTimeTop + 'px' }">
-            <span class="time-line-label">{{ currentTimeLabel }}</span>
-          </div>
+          <div v-if="isCurrentWeek" class="current-time-line-full" :style="{ top: currentTimeTop + 'px' }" />
           <div
             v-for="col in columns"
             :key="col.dateStr"
@@ -650,8 +651,6 @@ header { padding: 14px 16px 0; padding-top: calc(14px + env(safe-area-inset-top,
   background: #f44336;
   z-index: 7;
   pointer-events: none;
-  display: flex;
-  align-items: center;
 }
 .current-time-line-full::before {
   content: ''; position: absolute;
@@ -660,10 +659,12 @@ header { padding: 14px 16px 0; padding-top: calc(14px + env(safe-area-inset-top,
   border-radius: 50%; background: #f44336;
   border: 2px solid rgba(244,67,54,0.3);
 }
-.time-line-label {
+
+/* 时间轴上的当前时间标记 */
+.time-gutter-now {
   position: absolute;
-  left: 8px;
-  top: -10px;
+  right: 4px;
+  transform: translateY(-50%);
   font-size: 0.6rem;
   font-weight: 700;
   color: #f44336;
@@ -671,6 +672,9 @@ header { padding: 14px 16px 0; padding-top: calc(14px + env(safe-area-inset-top,
   padding: 1px 4px;
   border-radius: 3px;
   white-space: nowrap;
+  z-index: 8;
+  pointer-events: none;
+  line-height: 1.3;
 }
 
 /* ===== 日视图 ===== */
