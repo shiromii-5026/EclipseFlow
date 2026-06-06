@@ -3,12 +3,12 @@ import { ref, computed } from 'vue'
 import { authApi } from '@/services/api'
 import router from '@/router'
 
-// Determine avatar URL: if it's a relative path, prepend the API base origin
+// Determine avatar URL: always use backend base (not window.location.origin, which points to dev server in dev mode)
 function avatarUrl(path: string): string {
   if (!path) return ''
   if (path.startsWith('http')) return path
   // path like "/uploads/avatars/avatar_1.png"
-  const origin = window.location.protocol === 'file:' ? 'http://localhost:8080' : window.location.origin
+  const origin = window.location.protocol === 'file:' || window.location.port === '5173' ? 'http://localhost:8080' : window.location.origin
   return origin + path
 }
 
