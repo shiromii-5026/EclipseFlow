@@ -57,7 +57,7 @@ public class AuthController {
         User user = new User();
         user.setUsername(finalName);
         user.setPassword(encoder.encode(password));
-        user.setAvatarSeed(username.trim()); // 默认头像 seed 用原始用户名
+        user.setAvatarPath(null);
         userMapper.insert(user);
 
         String token = jwtUtil.generateToken(user.getId(), user.getUsername());
@@ -95,7 +95,7 @@ public class AuthController {
         return ResponseEntity.ok(Map.of(
             "id", user.getId(),
             "username", user.getUsername(),
-            "avatarSeed", user.getAvatarSeed() != null ? user.getAvatarSeed() : ""
+            "avatarPath", user.getAvatarPath() != null ? user.getAvatarPath() : ""
         ));
     }
 
@@ -111,15 +111,13 @@ public class AuthController {
         if (user == null) return ResponseEntity.notFound().build();
 
         String newUsername = body.get("username");
-        String newAvatarSeed = body.get("avatarSeed");
 
         if (newUsername != null && !newUsername.trim().isEmpty()) {
-            // 保留 #xxxx 后缀不可变，只替换前缀
             String oldSuffix = "";
             String currentName = user.getUsername();
             int hashIdx = currentName.lastIndexOf('#');
             if (hashIdx >= 0) {
-                oldSuffix = currentName.substring(hashIdx); // e.g. "#3847"
+                oldSuffix = currentName.substring(hashIdx);
             }
             String finalName = newUsername.trim() + oldSuffix;
             if (!finalName.equals(currentName)) {
@@ -131,14 +129,49 @@ public class AuthController {
             }
         }
 
-        if (newAvatarSeed != null && !newAvatarSeed.trim().isEmpty()) {
-            user.setAvatarSeed(newAvatarSeed.trim());
-        }
-
         userMapper.updateById(user);
         return ResponseEntity.ok(Map.of(
             "username", user.getUsername(),
-            "avatarSeed", user.getAvatarSeed() != null ? user.getAvatarSeed() : ""
+            "avatarPath", user.getAvatarPath() != null ? user.getAvatarPath() : ""
         ));
+    }
+
+    /**
+     * 上传头像图片
+     */
+    @PostMapping("/avatar")
+    public ResponseEntity<?> uploadAvatar(@RequestBody Map<String, String> body, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        if (userId == null) return ResponseEntity.status(401).body(Map.of("error", "未登录"));
+
+        String base64 = body.get("image");
+        if (base64 == null || base64.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "缺少图片数据"));
+        }
+
+        // 去掉 data:image/...;base64, 前缀
+        String prefix = "base64,";
+        int idx = base64.indexOf(prefix);
+        if (idx >= 0) {
+            base64 = base64.substring(idx + prefix.length());
+        }
+
+        try {
+            byte[] bytes = java.util.Base64.getDecoder().decode(base64);
+            String filename = "avatar_" + userId + ".png";
+            java.io.File dir = new java.io.File("uploads/avatars");
+            if (!dir.exists()) dir.mkdirs();
+            java.io.FileOutputStream fos = new java.io.FileOutputStream(new java.io.File(dir, filename));
+            fos.write(bytes);
+            fos.close();
+
+            User user = userMapper.selectById(userId);
+            user.setAvatarPath("/uploads/avatars/" + filename);
+            userMapper.updateById(user);
+
+            return ResponseEntity.ok(Map.of("avatarPath", user.getAvatarPath()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "图片保存失败"));
+        }
     }
 }

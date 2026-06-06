@@ -3,21 +3,31 @@ import { ref, computed } from 'vue'
 import { authApi } from '@/services/api'
 import router from '@/router'
 
+// Determine avatar URL: if it's a relative path, prepend the API base origin
+function avatarUrl(path: string): string {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  // path like "/uploads/avatars/avatar_1.png"
+  const origin = window.location.protocol === 'file:' ? 'http://localhost:8080' : window.location.origin
+  return origin + path
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('eclipse_token') || '')
   const username = ref(localStorage.getItem('eclipse_username') || '')
-  const avatarSeed = ref(localStorage.getItem('eclipse_avatar') || '')
+  const avatarPath = ref(localStorage.getItem('eclipse_avatar') || '')
 
   const isLoggedIn = computed(() => !!token.value)
+  const avatarUrlComputed = computed(() => avatarUrl(avatarPath.value))
 
   async function fetchProfile() {
     if (!token.value) return
     try {
       const p = await authApi.getProfile()
       username.value = p.username
-      avatarSeed.value = p.avatarSeed || p.username || ''
+      avatarPath.value = p.avatarPath || ''
       localStorage.setItem('eclipse_username', p.username)
-      localStorage.setItem('eclipse_avatar', avatarSeed.value)
+      localStorage.setItem('eclipse_avatar', avatarPath.value)
     } catch { /* ignore */ }
   }
 
@@ -41,26 +51,29 @@ export const useAuthStore = defineStore('auth', () => {
     router.push('/')
   }
 
-  async function updateProfile(newName: string, newSeed: string) {
-    const result = await authApi.updateProfile({
-      username: newName || undefined,
-      avatarSeed: newSeed || undefined,
-    })
+  async function updateProfile(newName: string) {
+    const result = await authApi.updateProfile({ username: newName || undefined })
     username.value = result.username
-    avatarSeed.value = result.avatarSeed || ''
+    avatarPath.value = result.avatarPath || ''
     localStorage.setItem('eclipse_username', result.username)
-    localStorage.setItem('eclipse_avatar', avatarSeed.value)
+    localStorage.setItem('eclipse_avatar', avatarPath.value)
+  }
+
+  async function uploadAvatar(base64: string) {
+    const result = await authApi.uploadAvatar(base64)
+    avatarPath.value = result.avatarPath
+    localStorage.setItem('eclipse_avatar', result.avatarPath)
   }
 
   function logout() {
     token.value = ''
     username.value = ''
-    avatarSeed.value = ''
+    avatarPath.value = ''
     localStorage.removeItem('eclipse_token')
     localStorage.removeItem('eclipse_username')
     localStorage.removeItem('eclipse_avatar')
     router.push('/login')
   }
 
-  return { token, username, avatarSeed, isLoggedIn, fetchProfile, login, register, updateProfile, logout }
+  return { token, username, avatarPath, avatarUrl: avatarUrlComputed, isLoggedIn, fetchProfile, login, register, updateProfile, uploadAvatar, logout }
 })

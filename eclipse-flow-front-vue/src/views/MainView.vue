@@ -31,7 +31,7 @@
             <span class="u-name">{{ auth.username || 'OPERATOR_01' }}</span>
             <span class="u-status">在线 // 实时同步</span>
           </div>
-          <img :src="`https://api.dicebear.com/7.x/pixel-art/svg?seed=${auth.avatarSeed || 'Eclipse'}`" alt="Avatar" class="avatar-pixel" />
+          <img :src="auth.avatarUrl || defaultAvatar" alt="Avatar" class="avatar-pixel" />
         </div>
         <button class="icon-btn" @click="showSettings = !showSettings" title="设置">
           <span class="material-symbols-outlined">settings</span>
@@ -46,15 +46,17 @@
             <button class="add-panel-close" @click="showSettings = false">&times;</button>
           </div>
           <div class="add-panel-body">
-            <img :src="`https://api.dicebear.com/7.x/pixel-art/svg?seed=${settingsSeed}`" class="settings-avatar" />
-            <label>头像种子</label>
+            <img :src="settingsPreview || defaultAvatar" class="settings-avatar" @click="$refs.avatarInput?.click()" title="点击更换头像" />
+            <input ref="avatarInput" type="file" accept="image/*" hidden @change="onAvatarFile" />
+            <label>头像</label>
             <div class="settings-row">
-              <input v-model="settingsSeed" type="text" class="f-input" style="flex:1" placeholder="输入 dicebear seed" />
-              <button class="save-btn" @click="saveProfile">更新</button>
+              <span class="settings-hint" style="flex:1">点击头像或选择图片文件上传</span>
+              <button class="save-btn" @click="$refs.avatarInput?.click()">选择图片</button>
             </div>
             <label>用户名</label>
             <div class="settings-row">
               <input v-model="settingsName" type="text" class="f-input" style="flex:1" placeholder="输入新用户名" />
+              <button class="save-btn" @click="saveProfile">更新</button>
             </div>
             <span class="settings-hint">修改后 #0000 后缀将保留不变</span>
             <label>主题</label>
@@ -277,22 +279,34 @@ const ui = useUiStore()
 
 const showAddPanel = ref(false)
 const showSettings = ref(false)
-const settingsSeed = ref(auth.avatarSeed || 'Eclipse')
 const settingsName = ref('')
+const settingsPreview = ref('')
+const defaultAvatar = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#2c2416"/><text x="32" y="40" text-anchor="middle" fill="#b5d528" font-size="28" font-weight="bold">?</text></svg>')
 
 // 打开设置时同步当前值
 watch(showSettings, v => {
   if (v) {
-    settingsSeed.value = auth.avatarSeed || 'Eclipse'
-    // 提取用户名不含后缀的部分
+    settingsPreview.value = auth.avatarUrl || defaultAvatar
     const name = auth.username || ''
     const hashIdx = name.lastIndexOf('#')
     settingsName.value = hashIdx >= 0 ? name.substring(0, hashIdx) : name
   }
 })
 
+function onAvatarFile(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = async () => {
+    const base64 = reader.result as string
+    settingsPreview.value = base64
+    await auth.uploadAvatar(base64)
+  }
+  reader.readAsDataURL(file)
+}
+
 async function saveProfile() {
-  await auth.updateProfile(settingsName.value, settingsSeed.value)
+  await auth.updateProfile(settingsName.value)
   showSettings.value = false
 }
 const weekNames = ['周一','周二','周三','周四','周五','周六','周日']

@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL COMMENT 'BCrypt 加密后的密码',
     calendar_public TINYINT DEFAULT 1 COMMENT '日历是否公开：0=私密，1=公开',
-    avatar_seed VARCHAR(100) DEFAULT NULL COMMENT 'DiceBear 头像 seed',
+    avatar_path VARCHAR(255) DEFAULT NULL COMMENT '头像图片路径',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

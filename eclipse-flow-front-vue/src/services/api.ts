@@ -106,13 +106,13 @@ export const authApi = {
     return resp.json()
   },
 
-  async getProfile(): Promise<{ id: number; username: string; avatarSeed: string }> {
+  async getProfile(): Promise<{ id: number; username: string; avatarPath: string }> {
     const resp = await fetch(`${BASE}/auth/profile`, { headers: authHeaders() })
     await handleResponse(resp)
     return resp.json()
   },
 
-  async updateProfile(data: { username?: string; avatarSeed?: string }): Promise<{ username: string; avatarSeed: string }> {
+  async updateProfile(data: { username?: string }): Promise<{ username: string; avatarPath: string }> {
     const resp = await fetch(`${BASE}/auth/profile`, {
       method: 'PUT',
       headers: { ...authHeaders(), 'Content-Type': 'application/json' },
@@ -122,6 +122,20 @@ export const authApi = {
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({ error: '更新失败' }))
       throw new Error(err.error || '更新失败')
+    }
+    return resp.json()
+  },
+
+  async uploadAvatar(base64: string): Promise<{ avatarPath: string }> {
+    const resp = await fetch(`${BASE}/auth/avatar`, {
+      method: 'POST',
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64 }),
+    })
+    await handleResponse(resp)
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: '上传失败' }))
+      throw new Error(err.error || '上传失败')
     }
     return resp.json()
   },
