@@ -65,15 +65,32 @@ class AuthControllerTest {
     }
 
     @Test
-    void registerShouldRejectDuplicateUser() {
-        // mock 数据库里有同名用户
+    void registerSurvivesNameCollisionByAppendingUniqueSuffix() {
+        // 现状:register 会先拼 #xxxx 后缀再查重;若仍撞名就换后缀重试,
+        // 而不是直接返回 400。所以这里验证“撞名也能注册成功,用户名带唯一后缀”。
         User existing = new User();
         existing.setId(1L);
-        existing.setUsername("existing");
-        when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
+        existing.setUsername("new#0000");
+        // 第一次查(第一个随机后缀)撞名,第二次换后缀查到 null → 唯一
+        when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing, null);
+        when(userMapper.insert(any(User.class))).thenAnswer(inv -> {
+            User u = inv.getArgument(0);
+            u.setId(99L);
+            return 1;
+        });
+        when(jwtUtil.generateToken(anyLong(), anyString())).thenReturn("fake-jwt-token");
 
-        ResponseEntity<?> resp = authController.register(Map.of("username", "existing", "password", "123456"));
-        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        ResponseEntity<?> resp = authController.register(Map.of("username", "new", "password", "123456"));
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) resp.getBody();
+        assertNotNull(body);
+        assertEquals("fake-jwt-token", body.get("token"));
+        String username = (String) body.get("username");
+        assertNotNull(username);
+        assertTrue(username.startsWith("new#"), "撞名时应追加 #xxxx 唯一后缀,实际=" + username);
+        assertNotEquals("new", username);
     }
 
     @Test
@@ -96,7 +113,9 @@ class AuthControllerTest {
         Map<String, Object> body = (Map<String, Object>) resp.getBody();
         assertNotNull(body);
         assertEquals("fake-jwt-token", body.get("token"));
-        assertEquals("newuser", body.get("username"));
+        // 现状:用户名会自动追加 #xxxx 随机后缀避免冲突
+        String username = (String) body.get("username");
+        assertTrue(username.startsWith("newuser#"), "用户名应带唯一后缀,实际=" + username);
     }
 
     // ===== 登录 =====

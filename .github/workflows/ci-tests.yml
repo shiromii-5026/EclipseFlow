@@ -1,0 +1,72 @@
+# EclipseFlow —— 质量保障 CI
+# 两个 job:
+#   backend: mvn test(54 条,含 JWT 过滤器/MockMvc 越权/真 MySQL 集成;MySQL 用 service 容器提供)
+#   ocr    : ocr-service pytest(15 条;只装轻量依赖,避免拉取 easyocr/PyTorch)
+name: EclipseFlow QA
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend mvn test (MySQL)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: "123456"
+          MYSQL_DATABASE: eclipse_flow
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h127.0.0.1 -uroot -p123456 --silent"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Init database schema (docker/mysql/init.sql)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-mysql-client
+          for i in $(seq 1 30); do
+            mysqladmin ping -h127.0.0.1 -uroot -p123456 --silent && break
+            sleep 2
+          done
+          mysql -h127.0.0.1 -uroot -p123456 < docker/mysql/init.sql
+
+      - name: Run backend tests (54: old 20 + qa 34)
+        working-directory: eclipse-flow-backend
+        run: mvn -B test
+
+  ocr:
+    name: OCR service pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ocr-service
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # 只装测试真正 import 的轻量依赖;easyocr 是懒加载、测试用假 reader 替换,无需 PyTorch
+      - name: Install minimal OCR test deps
+        run: |
+          pip install fastapi "uvicorn[standard]" python-multipart pillow numpy requests pytest httpx
+
+      - name: Run OCR tests
+        run: python -m pytest tests -q
