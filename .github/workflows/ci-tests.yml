@@ -45,7 +45,7 @@ jobs:
           done
           mysql -h127.0.0.1 -uroot -p123456 < docker/mysql/init.sql
 
-      - name: Run backend tests (54: old 20 + qa 34)
+      - name: "Run backend tests (54: old 20 + qa 34)"
         working-directory: eclipse-flow-backend
         run: mvn -B test
 
