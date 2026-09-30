@@ -39,12 +39,11 @@ services:
     environment:
       DB_USERNAME: root
       DB_PASSWORD: ${DB_PASSWORD:-123456}
-      # JWT 密钥（生产环境务必修改！）
-      JWT_SECRET: ${JWT_SECRET:-EclipseFlow-JWT-Secret-Key-2026-Must-Be-256-Bits-Long!!}
+      # JWT / VAPID 密钥：必须由 .env 提供，缺失直接启动失败（避免用仓库里的默认值上线）
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 中设置 JWT_SECRET}
       JWT_EXPIRATION_DAYS: ${JWT_EXPIRATION_DAYS:-7}
-      # VAPID 推送密钥（生产环境务必修改！）
-      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-BEfDYqG4eOMOiAeUNW3wfUzTPzSx1iBLgoODzGuAEoLwpsJh-VkPugQSvEY5Zu4zXZcnCUoWiaZppxWvuJECoU0}
-      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgcx4Jm2fIekV_hWbalsBxCrcH0Q6r4kwrmK-3gn1nZ8WhRANCAARHw2KhuHjjDogHlDVt8H1M0z80sdYgS4KDg8xrgBKC8KbCYflZD7oEErxGOWbuM12XJwlKFommaacVr7iRAqFN}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:?请在 .env 中设置 VAPID_PUBLIC_KEY}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:?请在 .env 中设置 VAPID_PRIVATE_KEY}
       # 数据库连接（Docker 内部通过服务名 mysql 访问）
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/eclipse_flow?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
     ports:

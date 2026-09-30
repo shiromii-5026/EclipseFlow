@@ -24,7 +24,9 @@ Thumbs.db
 
 # Local config (contains secrets)
 application-local.yml
+application-secrets.yml
 .env
+ocr-service/.env
 
 # Personal notes
 我要干啥来着.txt

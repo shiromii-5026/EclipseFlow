@@ -7,6 +7,7 @@ import io
 import os
 import json
 import time
+from pathlib import Path
 import requests
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,14 +24,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-AI_API_KEY = os.environ.get("ANTHROPIC_AUTH_TOKEN", "sk-29ef71dd622d4385a41ef51e91ddd66c")
+# 密钥一律从环境变量读取，源码里不落任何真实值。
+# 本地开发把密钥写在 ocr-service/.env（已被 .gitignore 忽略），docker 部署走 compose 的环境变量。
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).with_name(".env"))  # 已存在的环境变量优先，不被覆盖
+except ImportError:  # 没装 python-dotenv 时退化为纯环境变量
+    pass
+
+AI_API_KEY = os.environ.get("ANTHROPIC_AUTH_TOKEN", "")
 AI_BASE_URL = os.environ.get("ANTHROPIC_BASE_URL", "https://api.deepseek.com/anthropic")
 AI_MODEL = os.environ.get("ANTHROPIC_MODEL", "deepseek-v4-pro")
 
 # Kimi vision API (for images directly)
-KIMI_KEY = os.environ.get("KIMI_API_KEY", "sk-TrJW6JOKFgnoZYEWKhWGeuNBhXhQT9VhCcG75r9638IodMxF")
-KIMI_BASE = "https://api.moonshot.cn/v1"
-KIMI_MODEL = "moonshot-v1-32k-vision-preview"
+KIMI_KEY = os.environ.get("KIMI_API_KEY", "")
+KIMI_BASE = os.environ.get("KIMI_BASE_URL", "https://api.moonshot.cn/v1")
+# moonshot-v1-32k-vision-preview 已下线（404），改用当前可用的多模态模型 kimi-k3
+KIMI_MODEL = os.environ.get("KIMI_MODEL", "kimi-k3")
+
+_missing_keys = [n for n, v in (("KIMI_API_KEY", KIMI_KEY), ("ANTHROPIC_AUTH_TOKEN", AI_API_KEY)) if not v]
+if _missing_keys:
+    print(f"[CONFIG] 未配置 {'、'.join(_missing_keys)}，依赖它们的接口会直接返回错误；"
+          f"请在 ocr-service/.env 或环境变量中补齐。")
 
 _reader = None
 
@@ -106,6 +121,9 @@ class ParseRequest(BaseModel):
 
 @app.post("/parse")
 async def parse_tasks(req: ParseRequest):
+    if not AI_API_KEY:
+        return {"tasks": [], "error": "ANTHROPIC_AUTH_TOKEN 未配置（见 ocr-service/.env）"}
+
     combined = req.text
     if req.plain and req.plain != req.text:
         combined = (
@@ -200,6 +218,9 @@ async def ocr_vision(file: UploadFile = File(...), today: str = ""):
     Direct vision: send image to Kimi vision model, get structured tasks back.
     For complex images like full weekly schedules that OCR can't handle.
     """
+    if not KIMI_KEY:
+        return {"tasks": [], "error": "KIMI_API_KEY 未配置（见 ocr-service/.env）"}
+
     contents = await file.read()
 
     # Convert image to base64
@@ -249,8 +270,9 @@ async def ocr_vision(file: UploadFile = File(...), today: str = ""):
                         },
                     ],
                 }],
-                "max_tokens": 4096,
-                "temperature": 0.1,
+                "max_tokens": 8192,
+                # kimi-k3 是推理模型，只接受 temperature=1，传其他值会 400
+                "temperature": 1,
             },
             timeout=120,
         )
