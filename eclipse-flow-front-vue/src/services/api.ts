@@ -5,7 +5,7 @@ const isProxied =
   window.location.protocol !== 'file:' &&
   (!window.location.port || window.location.port === '80' || window.location.port === '443')
 
-const BASE = isProxied ? '/api' : 'http://localhost:8080/api'
+const BASE = isProxied ? '/api' : 'http://localhost:8095/api'
 const OCR_BASE = isProxied ? '' : 'http://localhost:8000'
 
 function token(): string {

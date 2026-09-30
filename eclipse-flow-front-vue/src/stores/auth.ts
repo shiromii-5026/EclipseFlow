@@ -8,7 +8,7 @@ function avatarUrl(path: string): string {
   if (!path) return ''
   if (path.startsWith('http')) return path
   // path like "/uploads/avatars/avatar_1.png"
-  const origin = window.location.protocol === 'file:' || window.location.port === '5173' ? 'http://localhost:8080' : window.location.origin
+  const origin = window.location.protocol === 'file:' || window.location.port === '5173' ? 'http://localhost:8095' : window.location.origin
   return origin + path
 }
 
