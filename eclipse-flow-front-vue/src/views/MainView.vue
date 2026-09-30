@@ -121,7 +121,15 @@
               </select>
               <button class="save-btn" @click="saveNewTask">立即保存 +</button>
             </div>
-            <div class="ocr-drop-zone" @click="$refs.ocrInputRef?.click()">
+            <div
+              class="ocr-drop-zone"
+              :class="{ 'drag-over': ocrDragOver }"
+              @click="$refs.ocrInputRef?.click()"
+              @dragenter.prevent="onOcrDragEnter"
+              @dragover.prevent="onOcrDragOver"
+              @dragleave="onOcrDragLeave"
+              @drop.prevent="onOcrDrop"
+            >
               <span class="material-symbols-outlined ocr-icon">imagesmode</span>
               <span class="ocr-text">拖拽图片到这里，自动识别文字填表</span>
               <span class="ocr-hint">或点击选择文件</span>
@@ -418,13 +426,59 @@ async function saveNewTask() {
 }
 
 async function onOcrFile(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]; if(!file) return
-  ocrStatus.value='识别中...'
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = '' // 清空 value，否则连续选中同一个文件不会再触发 change
+  if (!file) return
+  await handleOcrFile(file)
+}
+
+// 拖拽图片到识别框：dragenter/leave 在子元素间穿梭时也会冒泡触发，
+// 用计数器判断指针是否真的离开了整个识别框，避免高亮闪烁
+const ocrDragOver = ref(false)
+let ocrDragDepth = 0
+
+function isImageDrag(e: DragEvent) {
+  const items = e.dataTransfer?.items
+  if (!items) return false
+  return Array.from(items).some(i => i.kind === 'file' && i.type.startsWith('image/'))
+}
+
+function onOcrDragEnter(e: DragEvent) {
+  if (!isImageDrag(e)) return
+  ocrDragDepth++
+  ocrDragOver.value = true
+}
+
+function onOcrDragOver(e: DragEvent) {
+  if (!isImageDrag(e)) return
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+}
+
+function onOcrDragLeave() {
+  ocrDragDepth = Math.max(0, ocrDragDepth - 1)
+  if (ocrDragDepth === 0) ocrDragOver.value = false
+}
+
+function onOcrDrop(e: DragEvent) {
+  ocrDragDepth = 0
+  ocrDragOver.value = false
+  const file = Array.from(e.dataTransfer?.files ?? []).find(f => f.type.startsWith('image/'))
+  if (!file) { ocrStatus.value = ''; ui.showToast('请拖入图片文件'); return }
+  handleOcrFile(file)
+}
+
+async function handleOcrFile(file: File) {
+  ocrStatus.value = '识别中...'
   try {
     const r = await ocrApi.uploadImage(file, newTask.date)
-    if(r.tasks?.length){ const t=r.tasks[0] as any; newTask.name=t.taskName||''; if(t.startTime?.length>=5){newTask.hour=t.startTime.substring(0,2);newTask.minute=t.startTime.substring(3,5)}; ocrStatus.value='识别成功' }
-    else ocrStatus.value='未识别到任务'
-  } catch { ocrStatus.value='识别失败' }
+    if (r.tasks?.length) {
+      const t = r.tasks[0] as any
+      newTask.name = t.taskName || ''
+      if (t.startTime?.length >= 5) { newTask.hour = t.startTime.substring(0, 2); newTask.minute = t.startTime.substring(3, 5) }
+      ocrStatus.value = '识别成功'
+    } else ocrStatus.value = '未识别到任务'
+  } catch { ocrStatus.value = '识别失败' }
 }
 
 function switchView(v:'week'|'day'|'list') { cal.viewMode=v }
@@ -590,6 +644,7 @@ onUnmounted(()=>{ friend.stopPolling(); if(timeTimer) clearInterval(timeTimer) }
   margin-top: 4px; box-sizing: border-box;
 }
 .ocr-drop-zone:hover { border-color: var(--accent); background: var(--accent-bg-hover); }
+.ocr-drop-zone.drag-over { border-color: var(--accent); border-style: solid; background: var(--accent-bg-hover); }
 .ocr-icon { font-size: 20px; opacity: 0.5; }
 .ocr-text { font-size: 0.8rem; font-weight: 700; opacity: 0.55; }
 .ocr-hint { font-size: 0.7rem; opacity: 0.35; }
@@ -639,12 +694,15 @@ header { padding: 16px 16px 8px; padding-top: calc(16px + env(safe-area-inset-to
   left: 52px; right: 0;
   height: 2px;
   background: #f44336;
-  z-index: 7;
+  /* 必须低于粘性日期表头(z-index:5)和粘性时间轴(z-index:6)，
+     否则下滑时时间线会盖在日期表头上方 */
+  z-index: 4;
   pointer-events: none;
 }
 .current-time-line-full::before {
   content: ''; position: absolute;
-  left: -5px; top: -4px;
+  /* 圆点左缘不与粘性时间轴重叠，避免滚动时被时间轴裁掉半个圆 */
+  left: -1px; top: -4px;
   width: 10px; height: 10px;
   border-radius: 50%; background: #f44336;
   border: 2px solid rgba(244,67,54,0.3);
@@ -662,7 +720,8 @@ header { padding: 16px 16px 8px; padding-top: calc(16px + env(safe-area-inset-to
   padding: 1px 4px;
   border-radius: 3px;
   white-space: nowrap;
-  z-index: 8;
+  /* 同样低于粘性表头，滚动时让"14:30"标签沉到 CST 表头下面 */
+  z-index: 4;
   pointer-events: none;
   line-height: 1.3;
 }
