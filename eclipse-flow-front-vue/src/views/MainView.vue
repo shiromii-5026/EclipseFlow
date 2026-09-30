@@ -477,8 +477,17 @@ async function handleOcrFile(file: File) {
       newTask.name = t.taskName || ''
       if (t.startTime?.length >= 5) { newTask.hour = t.startTime.substring(0, 2); newTask.minute = t.startTime.substring(3, 5) }
       ocrStatus.value = '识别成功'
-    } else ocrStatus.value = '未识别到任务'
-  } catch { ocrStatus.value = '识别失败' }
+    } else if (r.error) {
+      // 服务端拿到了响应但识别失败（模型名不对、限流、AI 接口报错等）
+      console.error('[OCR] 服务返回错误:', r.error)
+      ocrStatus.value = '识别失败'
+    } else {
+      ocrStatus.value = '未识别到任务'
+    }
+  } catch (e) {
+    console.error('[OCR] 请求失败，检查 ocr-service 是否在 8000 端口运行:', e)
+    ocrStatus.value = '识别失败'
+  }
 }
 
 function switchView(v:'week'|'day'|'list') { cal.viewMode=v }

@@ -122,4 +122,37 @@ describe('新建任务 · 拖拽图片识别', () => {
     expect(ocrFetchCalls(fetchMock)).toHaveLength(0)
     expect(zone.find('.ocr-status').text()).toBe('')
   })
+
+  it('服务端返回 error 字段时报"识别失败"，而不是"未识别到任务"', async () => {
+    // 例：模型名失效返回 404 / 限流 429 / 参数不合法 400
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/ocr-vision')) return jsonResponse({ tasks: [], error: 'Kimi API error: 400' })
+      return jsonResponse({ data: [] })
+    })
+    wrapper = mount(MainView, { global: { plugins: [createPinia()] } })
+    await flushPromises()
+
+    const zone = wrapper.find('.ocr-drop-zone')
+    dispatchWithDataTransfer(zone.element, 'drop', fakeDataTransfer([new File(['x'], 'a.png', { type: 'image/png' })]))
+    await flushPromises()
+
+    expect(zone.find('.ocr-status').text()).toBe('识别失败')
+  })
+
+  it('OCR 服务没启动（fetch 直接抛错）时报"识别失败"', async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/ocr-vision')) throw new TypeError('Failed to fetch')
+      return jsonResponse({ data: [] })
+    })
+    wrapper = mount(MainView, { global: { plugins: [createPinia()] } })
+    await flushPromises()
+
+    const zone = wrapper.find('.ocr-drop-zone')
+    dispatchWithDataTransfer(zone.element, 'drop', fakeDataTransfer([new File(['x'], 'a.png', { type: 'image/png' })]))
+    await flushPromises()
+
+    expect(zone.find('.ocr-status').text()).toBe('识别失败')
+  })
 })
